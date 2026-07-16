@@ -7,10 +7,12 @@ import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
 import { TOOL_OPERATIONS, getToolColumns } from "@/lib/operations";
 import { useAllTools } from "@/lib/useAllTools";
 import DataTable from "./DataTable";
+import AddKonturaModal from "./AddKonturaModal";
 import EntityList from "./EntityList";
 import PartList from "./PartList";
 import Breadcrumbs, { Crumb } from "./Breadcrumbs";
 import PartWorkspace from "./PartWorkspace";
+import BackupView from "./BackupView";
 import TabButton from "./TabButton";
 
 type View =
@@ -27,7 +29,21 @@ type View =
       partCisloVykresu: string;
       partNazev: string;
     }
-  | { level: "nastroje" };
+  | { level: "nastroje" }
+  | { level: "zalohy" };
+
+function labelForView(v: View): string {
+  switch (v.level) {
+    case "customer":
+      return v.customerNazev;
+    case "inquiry":
+      return v.inquiryNazev;
+    case "part":
+      return formatPartLabel({ cisloVykresu: v.partCisloVykresu, nazev: v.partNazev });
+    default:
+      return "Domů";
+  }
+}
 
 function HomeView({
   onOpenCustomer,
@@ -148,9 +164,11 @@ function ToolsView({
   // kdyby se tenhle hook volal dřív, mohl by načíst katalog nástrojů ještě před tím,
   // než ho migrace ze staré localStorage stihne dopsat do IndexedDB.
   const { hydrated, byId, setById } = useAllTools();
+  const [showModal, setShowModal] = useState(false);
   if (!hydrated) return null;
   const config = TOOL_OPERATIONS.find((o) => o.id === toolsActive)!;
   const columns = getToolColumns(config);
+  const rows = byId[toolsActive];
 
   return (
     <div>
@@ -166,14 +184,25 @@ function ToolsView({
           </TabButton>
         ))}
       </nav>
-      <DataTable
-        title={`Nástroje — ${config.title}`}
-        columns={columns}
-        rows={byId[toolsActive]}
-        onChange={setById[toolsActive]}
-        konturaOptions={[]}
-        itemKind="nastroj"
-      />
+      <div className="mb-3">
+        <button
+          onClick={() => setShowModal(true)}
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+        >
+          + Přidat nástroj
+        </button>
+      </div>
+      <DataTable columns={columns} rows={rows} onChange={setById[toolsActive]} konturaOptions={[]} itemKind="nastroj" />
+      {showModal && (
+        <AddKonturaModal
+          title={`Nástroje — ${config.title}`}
+          columns={columns}
+          prevRow={rows[rows.length - 1]}
+          konturaOptions={[]}
+          onClose={() => setShowModal(false)}
+          onSubmit={(row) => setById[toolsActive]([...rows, row])}
+        />
+      )}
     </div>
   );
 }
@@ -182,6 +211,16 @@ export default function CncApp() {
   const [migrated, setMigrated] = useState(false);
   const [view, setView] = useState<View>({ level: "home" });
   const [toolsActive, setToolsActive] = useState<string>(TOOL_OPERATIONS[0].id);
+  // Poslední navštívené místo mimo Nástroje/Zálohy - umožňuje se odtamtud vrátit
+  // jedním krokem přímo tam, kde uživatel byl (ne jen na Domů). Nastavuje se přímo
+  // při renderu (ne v efektu), stejným způsobem jako React doporučuje pro odvozený
+  // stav navázaný na změnu jiného stavu.
+  const [prevView, setPrevView] = useState(view);
+  const [lastLocation, setLastLocation] = useState<View>({ level: "home" });
+  if (prevView !== view) {
+    setPrevView(view);
+    if (view.level !== "nastroje" && view.level !== "zalohy") setLastLocation(view);
+  }
 
   useEffect(() => {
     migrateLegacyDataIfNeeded().then(() => setMigrated(true));
@@ -190,7 +229,12 @@ export default function CncApp() {
   let crumbs: Crumb[] = [];
   let current: string | undefined;
 
-  if (view.level === "customer") {
+  if (view.level === "nastroje" || view.level === "zalohy") {
+    if (lastLocation.level !== "home") {
+      crumbs = [{ label: `← ${labelForView(lastLocation)}`, onClick: () => setView(lastLocation) }];
+    }
+    current = view.level === "nastroje" ? "Nástroje" : "Zálohy";
+  } else if (view.level === "customer") {
     crumbs = [{ label: "Domů", onClick: () => setView({ level: "home" }) }];
     current = view.customerNazev;
   } else if (view.level === "inquiry") {
@@ -241,11 +285,17 @@ export default function CncApp() {
       </header>
 
       <nav className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-4">
-        <TabButton active={view.level !== "nastroje"} onClick={() => setView({ level: "home" })}>
+        <TabButton
+          active={view.level !== "nastroje" && view.level !== "zalohy"}
+          onClick={() => setView({ level: "home" })}
+        >
           Domů
         </TabButton>
         <TabButton active={view.level === "nastroje"} onClick={() => setView({ level: "nastroje" })}>
           Nástroje
+        </TabButton>
+        <TabButton active={view.level === "zalohy"} onClick={() => setView({ level: "zalohy" })}>
+          Zálohy
         </TabButton>
       </nav>
 
@@ -299,8 +349,10 @@ export default function CncApp() {
           />
         ) : view.level === "part" ? (
           <PartWorkspace partId={view.partId} />
-        ) : (
+        ) : view.level === "nastroje" ? (
           <ToolsView toolsActive={toolsActive} setToolsActive={setToolsActive} />
+        ) : (
+          <BackupView />
         )}
       </main>
     </div>

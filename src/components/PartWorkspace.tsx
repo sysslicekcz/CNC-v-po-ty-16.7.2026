@@ -7,6 +7,7 @@ import { useAllPartRows } from "@/lib/usePartRows";
 import { useAllTools } from "@/lib/useAllTools";
 import { collectKonturaNames, nextKonturaNumber } from "@/lib/konturaNames";
 import DataTable from "./DataTable";
+import AddKonturaModal from "./AddKonturaModal";
 import ResultsPanel from "./ResultsPanel";
 import Summary from "./Summary";
 import TabButton from "./TabButton";
@@ -26,23 +27,37 @@ function OperationTab({
   autoKonturaStart: number;
   tools: Row[] | undefined;
 }) {
+  const [showModal, setShowModal] = useState(false);
   const config = OPERATIONS.find((o) => o.id === id)!;
   const result = useMemo(() => computeOperation(id, rows), [id, rows]);
   const toolColumns = tools ? getToolColumns(config) : undefined;
 
   return (
     <div>
-      <DataTable
-        title={config.title}
-        columns={config.columns}
-        rows={rows}
-        onChange={setRows}
-        konturaOptions={konturaOptions}
-        autoKonturaStart={autoKonturaStart}
-        tools={tools}
-        toolColumns={toolColumns}
-      />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-base font-medium">{config.title}</h3>
+        <button
+          onClick={() => setShowModal(true)}
+          className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+        >
+          + Přidat konturu
+        </button>
+      </div>
+      <DataTable columns={config.columns} rows={rows} onChange={setRows} konturaOptions={konturaOptions} />
       <ResultsPanel result={result} />
+      {showModal && (
+        <AddKonturaModal
+          title={config.title}
+          columns={config.columns}
+          prevRow={rows[rows.length - 1]}
+          konturaOptions={konturaOptions}
+          autoKonturaStart={autoKonturaStart}
+          tools={tools}
+          toolColumns={toolColumns}
+          onClose={() => setShowModal(false)}
+          onSubmit={(row) => setRows([...rows, row])}
+        />
+      )}
     </div>
   );
 }
@@ -70,17 +85,14 @@ export default function PartWorkspace({ partId }: { partId: string }) {
       {!hydrated || !toolsHydrated ? null : active === "summary" ? (
         <Summary byId={byId} />
       ) : (
-        <div>
-          <h3 className="mb-3 text-base font-medium">{OPERATIONS.find((o) => o.id === active)!.title}</h3>
-          <OperationTab
-            id={active}
-            rows={byId[active]}
-            setRows={setById[active]}
-            konturaOptions={konturaOptions}
-            autoKonturaStart={autoKontura}
-            tools={toolsById[active]}
-          />
-        </div>
+        <OperationTab
+          id={active}
+          rows={byId[active]}
+          setRows={setById[active]}
+          konturaOptions={konturaOptions}
+          autoKonturaStart={autoKontura}
+          tools={toolsById[active]}
+        />
       )}
     </div>
   );
