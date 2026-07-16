@@ -23,6 +23,8 @@ export default function AddKonturaModal({
   columns,
   prevRow,
   konturaOptions,
+  tools,
+  toolColumns,
   onSubmit,
   onClose,
 }: {
@@ -30,6 +32,10 @@ export default function AddKonturaModal({
   columns: ColumnDef[];
   prevRow: Row | undefined;
   konturaOptions: string[];
+  /** Katalog nástrojů dostupný pro tuto operaci (prázdné/chybí = žádný výběr nástroje). */
+  tools?: Row[];
+  /** Sloupce katalogu odpovídající poli "nazev" + fromTool polím této operace. */
+  toolColumns?: ColumnDef[];
   onSubmit: (row: Row) => void;
   onClose: () => void;
 }) {
@@ -46,6 +52,19 @@ export default function AddKonturaModal({
 
   const setField = (key: string, value: string, type: ColumnDef["type"]) => {
     setDraft((d) => ({ ...d, [key]: type === "number" ? (value === "" ? null : Number(value)) : value }));
+  };
+
+  const applyTool = (nazev: string) => {
+    const tool = tools?.find((t) => t.nazev === nazev);
+    if (!tool || !toolColumns) return;
+    setDraft((d) => {
+      const next = { ...d };
+      for (const c of toolColumns) {
+        if (c.key === "nazev") continue;
+        next[c.key] = tool[c.key] ?? next[c.key];
+      }
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -66,6 +85,25 @@ export default function AddKonturaModal({
         className="max-h-[90vh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:max-w-md sm:rounded-xl"
       >
         <h3 className="mb-4 text-base font-medium">{title}</h3>
+        {tools && tools.length > 0 && (
+          <label className="mb-4 block text-sm">
+            <span className="mb-1 block text-muted">Nástroj</span>
+            <select
+              defaultValue=""
+              onChange={(e) => applyTool(e.target.value)}
+              className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-sm outline-none focus:border-accent"
+            >
+              <option value="" disabled>
+                Vyber nástroj z katalogu (nebo vyplň ručně)
+              </option>
+              {tools.map((t) => (
+                <option key={String(t.nazev)} value={String(t.nazev)}>
+                  {String(t.nazev)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="space-y-3">
           {columns.map((c) => (
             <label key={c.key} className="block text-sm">

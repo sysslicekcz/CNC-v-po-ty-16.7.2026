@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { OPERATIONS } from "@/lib/operations";
+import { OPERATIONS, TOOL_OPERATIONS, getToolColumns } from "@/lib/operations";
 import { computeOperation, Row } from "@/lib/results";
 import { useAllRows } from "@/lib/useAllRows";
+import { useAllTools } from "@/lib/useAllTools";
 import { collectKonturaNames } from "@/lib/konturaNames";
 import DataTable from "./DataTable";
 import ResultsPanel from "./ResultsPanel";
@@ -14,14 +15,17 @@ function OperationTab({
   rows,
   setRows,
   konturaOptions,
+  tools,
 }: {
   id: string;
   rows: Row[];
   setRows: (rows: Row[]) => void;
   konturaOptions: string[];
+  tools: Row[] | undefined;
 }) {
   const config = OPERATIONS.find((o) => o.id === id)!;
   const result = useMemo(() => computeOperation(id, rows), [id, rows]);
+  const toolColumns = tools ? getToolColumns(config) : undefined;
 
   return (
     <div>
@@ -31,15 +35,43 @@ function OperationTab({
         rows={rows}
         onChange={setRows}
         konturaOptions={konturaOptions}
+        tools={tools}
+        toolColumns={toolColumns}
       />
       <ResultsPanel result={result} />
     </div>
   );
 }
 
+function ToolsTab({
+  id,
+  rows,
+  setRows,
+}: {
+  id: string;
+  rows: Row[];
+  setRows: (rows: Row[]) => void;
+}) {
+  const config = TOOL_OPERATIONS.find((o) => o.id === id)!;
+  const columns = getToolColumns(config);
+
+  return (
+    <DataTable
+      title={`Nástroje — ${config.title}`}
+      columns={columns}
+      rows={rows}
+      onChange={setRows}
+      konturaOptions={[]}
+      itemKind="nastroj"
+    />
+  );
+}
+
 export default function CncApp() {
   const [active, setActive] = useState<string>("summary");
+  const [toolsActive, setToolsActive] = useState<string>(TOOL_OPERATIONS[0].id);
   const { hydrated, byId, setById } = useAllRows();
+  const { hydrated: toolsHydrated, byId: toolsById, setById: setToolsById } = useAllTools();
   const konturaOptions = useMemo(() => collectKonturaNames(byId), [byId]);
 
   return (
@@ -67,11 +99,34 @@ export default function CncApp() {
             {op.shortTitle}
           </TabButton>
         ))}
+        <TabButton active={active === "nastroje"} onClick={() => setActive("nastroje")}>
+          Nástroje
+        </TabButton>
       </nav>
 
       <main>
-        {!hydrated ? null : active === "summary" ? (
+        {!hydrated || !toolsHydrated ? null : active === "summary" ? (
           <Summary byId={byId} />
+        ) : active === "nastroje" ? (
+          <div>
+            <h2 className="mb-3 text-lg font-medium">Katalog nástrojů</h2>
+            <p className="mb-4 max-w-2xl text-sm text-muted">
+              Předdefinuj nástroje s jejich posuvy, řeznými rychlostmi a rozměry. Při zadávání
+              kontury je pak půjde vybrat ze seznamu a příslušná pole se předvyplní.
+            </p>
+            <nav className="mb-4 flex flex-wrap gap-1.5">
+              {TOOL_OPERATIONS.map((op) => (
+                <TabButton
+                  key={op.id}
+                  active={toolsActive === op.id}
+                  onClick={() => setToolsActive(op.id)}
+                >
+                  {op.shortTitle}
+                </TabButton>
+              ))}
+            </nav>
+            <ToolsTab id={toolsActive} rows={toolsById[toolsActive]} setRows={setToolsById[toolsActive]} />
+          </div>
         ) : (
           <div>
             <h2 className="mb-3 text-lg font-medium">
@@ -82,6 +137,7 @@ export default function CncApp() {
               rows={byId[active]}
               setRows={setById[active]}
               konturaOptions={konturaOptions}
+              tools={toolsById[active]}
             />
           </div>
         )}

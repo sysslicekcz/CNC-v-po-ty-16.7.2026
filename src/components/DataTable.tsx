@@ -11,16 +11,27 @@ export default function DataTable({
   rows,
   onChange,
   konturaOptions,
+  tools,
+  toolColumns,
+  itemKind = "kontura",
 }: {
   title: string;
   columns: ColumnDef[];
   rows: Row[];
   onChange: (rows: Row[]) => void;
   konturaOptions: string[];
+  tools?: Row[];
+  toolColumns?: ColumnDef[];
+  /** Ovlivňuje jen texty tlačítek/hlášek — "kontura" (výchozí) pro operace, "nastroj" pro katalog nástrojů. */
+  itemKind?: "kontura" | "nastroj";
 }) {
   const [showModal, setShowModal] = useState(false);
   const listId = useId();
   const identKey = columns.find((c) => c.type === "text")?.key;
+  const texts =
+    itemKind === "nastroj"
+      ? { empty: "Zatím žádné nástroje. Přidej nástroj tlačítkem níže.", add: "+ Přidat nástroj", deleteNoun: "nástroj" }
+      : { empty: "Zatím žádné kontury. Přidej konturu tlačítkem níže.", add: "+ Přidat konturu", deleteNoun: "konturu" };
 
   const updateCell = (idx: number, key: string, value: string) => {
     const next = rows.slice();
@@ -34,7 +45,7 @@ export default function DataTable({
 
   const removeRow = (idx: number) => {
     const label = identKey ? String(rows[idx][identKey] ?? "") : "";
-    if (!window.confirm(`Smazat konturu${label ? ` „${label}“` : ""}?`)) return;
+    if (!window.confirm(`Smazat ${texts.deleteNoun}${label ? ` „${label}“` : ""}?`)) return;
     onChange(rows.filter((_, i) => i !== idx));
   };
 
@@ -56,7 +67,7 @@ export default function DataTable({
           {rows.length === 0 && (
             <tr>
               <td colSpan={columns.length + 1} className="px-3 py-6 text-center text-muted">
-                Zatím žádné kontury. Přidej konturu tlačítkem níže.
+                {texts.empty}
               </td>
             </tr>
           )}
@@ -109,7 +120,7 @@ export default function DataTable({
           onClick={() => setShowModal(true)}
           className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
         >
-          + Přidat konturu
+          {texts.add}
         </button>
       </div>
       {showModal && (
@@ -118,6 +129,8 @@ export default function DataTable({
           columns={columns}
           prevRow={rows[rows.length - 1]}
           konturaOptions={konturaOptions}
+          tools={tools}
+          toolColumns={toolColumns}
           onClose={() => setShowModal(false)}
           onSubmit={(row) => {
             onChange([...rows, row]);

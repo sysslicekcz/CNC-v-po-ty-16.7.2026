@@ -10,6 +10,9 @@ export interface ColumnDef {
    *  (místo ze stejnojmenného pole). Např. počáteční průměr nové kontury navazuje na koncový
    *  průměr té předchozí. */
   chainFrom?: string;
+  /** Hodnota patří nástroji (posuv, řezná rychlost, rozměr nástroje…), ne konkrétní kontuře —
+   *  jde tedy o pole, které lze uložit v katalogu nástrojů a při zadávání kontury z něj načíst. */
+  fromTool?: boolean;
 }
 
 export interface OperationConfig {
@@ -29,11 +32,11 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "Dc", label: "Počáteční průměr", unit: "mm", type: "number", chainFrom: "Df" },
       { key: "Df", label: "Koncový průměr", unit: "mm", type: "number" },
       { key: "L", label: "Délka úseku", unit: "mm", type: "number" },
-      { key: "fHrub", label: "Posuv hrubování", unit: "mm/ot", type: "number" },
-      { key: "fDok", label: "Posuv dokončování", unit: "mm/ot", type: "number" },
-      { key: "VcHrub", label: "Řezná rychlost hrubování", unit: "m/min", type: "number" },
-      { key: "VcDok", label: "Řezná rychlost dokončování", unit: "m/min", type: "number" },
-      { key: "ap", label: "Hloubka řezu", unit: "mm", type: "number" },
+      { key: "fHrub", label: "Posuv hrubování", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "fDok", label: "Posuv dokončování", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "VcHrub", label: "Řezná rychlost hrubování", unit: "m/min", type: "number", fromTool: true },
+      { key: "VcDok", label: "Řezná rychlost dokončování", unit: "m/min", type: "number", fromTool: true },
+      { key: "ap", label: "Hloubka řezu", unit: "mm", type: "number", fromTool: true },
     ],
   },
   {
@@ -45,11 +48,11 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "Dc", label: "Počáteční průměr", unit: "mm", type: "number", chainFrom: "Df" },
       { key: "Df", label: "Koncový průměr", unit: "mm", type: "number" },
       { key: "L", label: "Délka úseku", unit: "mm", type: "number" },
-      { key: "fHrub", label: "Posuv hrubování", unit: "mm/ot", type: "number" },
-      { key: "fDok", label: "Posuv dokončování", unit: "mm/ot", type: "number" },
-      { key: "VcHrub", label: "Řezná rychlost hrubování", unit: "m/min", type: "number" },
-      { key: "VcDok", label: "Řezná rychlost dokončování", unit: "m/min", type: "number" },
-      { key: "ap", label: "Hloubka řezu", unit: "mm", type: "number" },
+      { key: "fHrub", label: "Posuv hrubování", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "fDok", label: "Posuv dokončování", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "VcHrub", label: "Řezná rychlost hrubování", unit: "m/min", type: "number", fromTool: true },
+      { key: "VcDok", label: "Řezná rychlost dokončování", unit: "m/min", type: "number", fromTool: true },
+      { key: "ap", label: "Hloubka řezu", unit: "mm", type: "number", fromTool: true },
     ],
   },
   {
@@ -61,9 +64,9 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "W", label: "Šířka čelní plochy", unit: "mm", type: "number" },
       { key: "D", label: "Průměr obrobku", unit: "mm", type: "number" },
       { key: "d", label: "Konečný průměr", unit: "mm", type: "number" },
-      { key: "f", label: "Posuv", unit: "mm/ot", type: "number" },
-      { key: "Vc", label: "Řezná rychlost", unit: "m/min", type: "number" },
-      { key: "ap", label: "Hloubka řezu", unit: "mm", type: "number" },
+      { key: "f", label: "Posuv", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "Vc", label: "Řezná rychlost", unit: "m/min", type: "number", fromTool: true },
+      { key: "ap", label: "Hloubka řezu", unit: "mm", type: "number", fromTool: true },
     ],
   },
   {
@@ -73,10 +76,10 @@ export const OPERATIONS: OperationConfig[] = [
     columns: [
       { key: "kontura", label: "Kontura", type: "text" },
       { key: "pocetDer", label: "Počet děr", type: "number" },
-      { key: "D", label: "Průměr vrtáku", unit: "mm", type: "number" },
+      { key: "D", label: "Průměr vrtáku", unit: "mm", type: "number", fromTool: true },
       { key: "L", label: "Hloubka vrtání", unit: "mm", type: "number" },
-      { key: "f", label: "Posuv", unit: "mm/ot", type: "number" },
-      { key: "Vc", label: "Řezná rychlost", unit: "m/min", type: "number" },
+      { key: "f", label: "Posuv", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "Vc", label: "Řezná rychlost", unit: "m/min", type: "number", fromTool: true },
     ],
   },
   {
@@ -88,10 +91,10 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "D1", label: "Počáteční průměr D1", unit: "mm", type: "number" },
       { key: "D2", label: "Konečný průměr D2", unit: "mm", type: "number" },
       { key: "W", label: "Šířka zápichu W", unit: "mm", type: "number" },
-      { key: "Fax", label: "Axiální posuv Fax", unit: "mm/ot", type: "number" },
-      { key: "Vc", label: "Řezná rychlost", unit: "m/min", type: "number" },
-      { key: "Wnuz", label: "Šířka nože", unit: "mm", type: "number" },
-      { key: "Rap", label: "Max. radiální záběr", unit: "mm", type: "number" },
+      { key: "Fax", label: "Axiální posuv Fax", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "Vc", label: "Řezná rychlost", unit: "m/min", type: "number", fromTool: true },
+      { key: "Wnuz", label: "Šířka nože", unit: "mm", type: "number", fromTool: true },
+      { key: "Rap", label: "Max. radiální záběr", unit: "mm", type: "number", fromTool: true },
     ],
   },
   {
@@ -103,9 +106,9 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "L", label: "Délka drážky", unit: "mm", type: "number" },
       { key: "W", label: "Šířka drážky", unit: "mm", type: "number" },
       { key: "D", label: "Hloubka drážky", unit: "mm", type: "number" },
-      { key: "vf", label: "Posuv", unit: "mm/min", type: "number" },
-      { key: "Dc", label: "Průměr frézy", unit: "mm", type: "number" },
-      { key: "apMax", label: "Max. hloubka řezu", unit: "mm", type: "number" },
+      { key: "vf", label: "Posuv", unit: "mm/min", type: "number", fromTool: true },
+      { key: "Dc", label: "Průměr frézy", unit: "mm", type: "number", fromTool: true },
+      { key: "apMax", label: "Max. hloubka řezu", unit: "mm", type: "number", fromTool: true },
     ],
   },
   {
@@ -118,11 +121,11 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "D2", label: "Konečný průměr", unit: "mm", type: "number" },
       { key: "L", label: "Délka broušené plochy", unit: "mm", type: "number" },
       { key: "No", label: "Otáčky obrobku", unit: "ot/min", type: "number" },
-      { key: "Vc", label: "Řezná rychlost kotouče", unit: "m/s", type: "number" },
-      { key: "Dc", label: "Průměr kotouče", unit: "mm", type: "number" },
-      { key: "bs", label: "Šířka kotouče", unit: "mm", type: "number" },
-      { key: "ap", label: "Hloubka úběru na vrstvu", unit: "mm", type: "number" },
-      { key: "k", label: "Poměr k šířce kotouče", type: "number" },
+      { key: "Vc", label: "Řezná rychlost kotouče", unit: "m/s", type: "number", fromTool: true },
+      { key: "Dc", label: "Průměr kotouče", unit: "mm", type: "number", fromTool: true },
+      { key: "bs", label: "Šířka kotouče", unit: "mm", type: "number", fromTool: true },
+      { key: "ap", label: "Hloubka úběru na vrstvu", unit: "mm", type: "number", fromTool: true },
+      { key: "k", label: "Poměr k šířce kotouče", type: "number", fromTool: true },
     ],
   },
   {
@@ -134,10 +137,10 @@ export const OPERATIONS: OperationConfig[] = [
       { key: "Dmax", label: "Max. průměr", unit: "mm", type: "number" },
       { key: "Dmin", label: "Min. průměr", unit: "mm", type: "number" },
       { key: "apZap", label: "Hloubka zápichu", unit: "mm", type: "number" },
-      { key: "fZap", label: "Posuv", unit: "mm/ot", type: "number" },
-      { key: "VcZap", label: "Řezná rychlost", unit: "m/min", type: "number" },
-      { key: "Wnuz", label: "Šířka nože", unit: "mm", type: "number" },
-      { key: "apMax", label: "Max. axiální záběr", unit: "mm", type: "number" },
+      { key: "fZap", label: "Posuv", unit: "mm/ot", type: "number", fromTool: true },
+      { key: "VcZap", label: "Řezná rychlost", unit: "m/min", type: "number", fromTool: true },
+      { key: "Wnuz", label: "Šířka nože", unit: "mm", type: "number", fromTool: true },
+      { key: "apMax", label: "Max. axiální záběr", unit: "mm", type: "number", fromTool: true },
     ],
   },
   {
@@ -151,3 +154,18 @@ export const OPERATIONS: OperationConfig[] = [
     ],
   },
 ];
+
+/** Operace, které mají alespoň jedno pole odvoditelné z katalogu nástrojů
+ *  (přípravné časy žádné takové pole nemají, takže tam katalog nemá smysl). */
+export const TOOL_OPERATIONS: OperationConfig[] = OPERATIONS.filter((op) =>
+  op.columns.some((c) => c.fromTool)
+);
+
+/** Sloupce katalogu nástrojů pro danou operaci: vlastní název nástroje +
+ *  parametry, které operace označuje jako "fromTool". */
+export function getToolColumns(op: OperationConfig): ColumnDef[] {
+  return [
+    { key: "nazev", label: "Název nástroje", type: "text" },
+    ...op.columns.filter((c) => c.fromTool),
+  ];
+}
