@@ -1,21 +1,48 @@
 "use client";
 
-import { useLocalRows } from "./useLocalRows";
+import { useEffect, useState } from "react";
 import { Row } from "./results";
+import { get, put } from "./db";
 
-// Stejný princip jako useAllRows: explicitní volání (ne smyčka) kvůli Rules of Hooks
+interface ToolRowsRecord {
+  opId: string;
+  rows: Row[];
+}
+
+// Katalog nástrojů je globální (nezávislý na dílu) - jeden záznam v IndexedDB
+// store "toolRows" na operaci.
+function useToolRows(opId: string) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    get<ToolRowsRecord>("toolRows", opId).then((rec) => {
+      setRows(rec?.rows ?? []);
+      setHydrated(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- jednorázové načtení po mountu
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    put<ToolRowsRecord>("toolRows", { opId, rows });
+  }, [rows, hydrated, opId]);
+
+  return { rows, setRows, hydrated };
+}
+
+// Stejný princip jako useAllPartRows: explicitní volání (ne smyčka) kvůli Rules of Hooks
 // — sada operací s nástroji je statická, takže je to ekvivalent pevného seznamu
-// useState volání. Klíče v localStorage mají namespace "nastroje:<id>", odlišný
-// od klíčů s konturami dané operace.
+// useState volání.
 export function useAllTools() {
-  const podelneVnejsi = useLocalRows("nastroje:podelneVnejsi");
-  const podelneVnitrni = useLocalRows("nastroje:podelneVnitrni");
-  const pricne = useLocalRows("nastroje:pricne");
-  const vrtani = useLocalRows("nastroje:vrtani");
-  const zapich = useLocalRows("nastroje:zapich");
-  const frezovaniDrazek = useLocalRows("nastroje:frezovaniDrazek");
-  const brouseniNaKulato = useLocalRows("nastroje:brouseniNaKulato");
-  const celniZapichy = useLocalRows("nastroje:celniZapichy");
+  const podelneVnejsi = useToolRows("podelneVnejsi");
+  const podelneVnitrni = useToolRows("podelneVnitrni");
+  const pricne = useToolRows("pricne");
+  const vrtani = useToolRows("vrtani");
+  const zapich = useToolRows("zapich");
+  const frezovaniDrazek = useToolRows("frezovaniDrazek");
+  const brouseniNaKulato = useToolRows("brouseniNaKulato");
+  const celniZapichy = useToolRows("celniZapichy");
 
   const hydrated =
     podelneVnejsi.hydrated &&
