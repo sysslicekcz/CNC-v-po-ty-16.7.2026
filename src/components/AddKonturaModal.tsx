@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ColumnDef } from "@/lib/operations";
 import { Row } from "@/lib/results";
 
@@ -49,7 +49,10 @@ export default function AddKonturaModal({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<Row>(() => buildDefaultRow(columns, prevRow));
+  const [toolSelectKey, setToolSelectKey] = useState(0);
+  const [justAdded, setJustAdded] = useState(false);
   const listId = useId();
+  const firstFieldRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,6 +61,12 @@ export default function AddKonturaModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    if (!justAdded) return;
+    const t = setTimeout(() => setJustAdded(false), 1500);
+    return () => clearTimeout(t);
+  }, [justAdded]);
 
   const setField = (key: string, value: string, type: ColumnDef["type"]) => {
     setDraft((d) => ({ ...d, [key]: type === "number" ? (value === "" ? null : Number(value)) : value }));
@@ -76,26 +85,36 @@ export default function AddKonturaModal({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Enter (nebo tlačítko "Přidat a další") uloží konturu a rovnou připraví formulář
+  // na další, ať se nemusí po každé konturuře znovu otevírat dialog.
+  const handleAddAndContinue = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(draft);
+    setDraft(buildDefaultRow(columns, draft));
+    setToolSelectKey((k) => k + 1);
+    setJustAdded(true);
+    firstFieldRef.current?.focus();
+  };
+
+  const handleAddAndClose = () => {
+    onSubmit(draft);
+    onClose();
   };
 
   const firstKey = columns[0]?.key;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
       <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
+        onSubmit={handleAddAndContinue}
         className="max-h-[90vh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:max-w-md sm:rounded-xl"
       >
-        <h3 className="mb-4 text-base font-medium">{title}</h3>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-medium">{title}</h3>
+          {justAdded && <span className="text-sm text-ok">✓ Přidáno</span>}
+        </div>
         {tools && tools.length > 0 && (
-          <label className="mb-4 block text-sm">
+          <label key={toolSelectKey} className="mb-4 block text-sm">
             <span className="mb-1 block text-muted">Nástroj</span>
             <select
               defaultValue=""
@@ -121,6 +140,7 @@ export default function AddKonturaModal({
                 {c.unit ? <span className="text-muted/70"> [{c.unit}]</span> : null}
               </span>
               <input
+                ref={c.key === firstKey ? firstFieldRef : undefined}
                 autoFocus={c.key === firstKey}
                 type={c.type === "number" ? "number" : "text"}
                 step="any"
@@ -149,10 +169,14 @@ export default function AddKonturaModal({
             Zrušit
           </button>
           <button
-            type="submit"
-            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-[#17130a]"
+            type="button"
+            onClick={handleAddAndClose}
+            className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
           >
-            Přidat
+            Přidat a zavřít
+          </button>
+          <button type="submit" className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-[#17130a]">
+            Přidat a další
           </button>
         </div>
       </form>

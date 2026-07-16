@@ -132,10 +132,7 @@ export default function DataTable({
           tools={tools}
           toolColumns={toolColumns}
           onClose={() => setShowModal(false)}
-          onSubmit={(row) => {
-            onChange([...rows, row]);
-            setShowModal(false);
-          }}
+          onSubmit={(row) => onChange([...rows, row])}
         />
       )}
     </div>
