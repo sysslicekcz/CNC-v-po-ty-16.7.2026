@@ -26,19 +26,6 @@ export default function Summary({ byId }: { byId: Record<string, Row[]> }) {
 
   const withData = perOp.filter((p) => p.result.rows.length > 0);
 
-  // Souhrn podle kontury napříč operacemi (přípravné časy do kontur nepatří).
-  const konturaTotals = new Map<string, number>();
-  for (const { op, result } of perOp) {
-    if (op.id === "pripravneCasy") continue;
-    for (const r of result.rows) {
-      if (r.cas === null || !r.kontura) continue;
-      konturaTotals.set(r.kontura, (konturaTotals.get(r.kontura) ?? 0) + r.cas);
-    }
-  }
-  const byKontura = Array.from(konturaTotals.entries())
-    .map(([kontura, cas]) => ({ kontura, cas }))
-    .sort((a, b) => b.cas - a.cas);
-
   return (
     <div className="space-y-6">
       {/* Signature: digital time-clock readout */}
@@ -68,49 +55,31 @@ export default function Summary({ byId }: { byId: Record<string, Row[]> }) {
           Zatím nejsou zadané žádné kontury. Vyplň data v některé ze záložek nahoře.
         </div>
       ) : (
-        <>
-          {byKontura.length > 0 && (
-            <div className="rounded-lg border border-border bg-surface">
-              <div className="border-b border-border px-4 py-2 text-sm font-medium">
-                Souhrn podle kontury
+        <div className="space-y-4">
+          {withData.map(({ op, result }) => (
+            <div key={op.id} className="rounded-lg border border-border bg-surface">
+              <div className="flex items-center justify-between border-b border-border px-4 py-2">
+                <span className="text-sm font-medium">{op.title}</span>
+                <span className="tabular text-sm text-accent">{formatMin(result.total)} min</span>
               </div>
               <ul className="divide-y divide-border/60">
-                {byKontura.map(({ kontura, cas }) => (
-                  <li key={kontura} className="flex items-center justify-between px-4 py-1.5 text-sm">
-                    <span className="text-foreground">{kontura}</span>
-                    <span className="tabular text-accent">{formatMin(cas)} min</span>
+                {result.rows.map((r, i) => (
+                  <li key={i} className="flex items-center justify-between px-4 py-1.5 text-sm">
+                    <span className="text-muted">
+                      {r.label}
+                      {r.kontura ? <span className="text-foreground"> · {r.kontura}</span> : null}
+                    </span>
+                    {r.cas === null ? (
+                      <span className="tabular text-danger">{r.note}</span>
+                    ) : (
+                      <span className="tabular">{formatMin(r.cas)} min</span>
+                    )}
                   </li>
                 ))}
               </ul>
             </div>
-          )}
-
-          <div className="space-y-4">
-            {withData.map(({ op, result }) => (
-              <div key={op.id} className="rounded-lg border border-border bg-surface">
-                <div className="flex items-center justify-between border-b border-border px-4 py-2">
-                  <span className="text-sm font-medium">{op.title}</span>
-                  <span className="tabular text-sm text-accent">{formatMin(result.total)} min</span>
-                </div>
-                <ul className="divide-y divide-border/60">
-                  {result.rows.map((r, i) => (
-                    <li key={i} className="flex items-center justify-between px-4 py-1.5 text-sm">
-                      <span className="text-muted">
-                        {r.label}
-                        {r.kontura ? <span className="text-foreground"> · {r.kontura}</span> : null}
-                      </span>
-                      {r.cas === null ? (
-                        <span className="tabular text-danger">{r.note}</span>
-                      ) : (
-                        <span className="tabular">{formatMin(r.cas)} min</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </>
+          ))}
+        </div>
       )}
     </div>
   );

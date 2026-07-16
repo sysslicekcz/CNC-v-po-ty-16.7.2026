@@ -11,6 +11,7 @@ export default function DataTable({
   rows,
   onChange,
   konturaOptions,
+  autoKonturaStart,
   tools,
   toolColumns,
   itemKind = "kontura",
@@ -20,6 +21,7 @@ export default function DataTable({
   rows: Row[];
   onChange: (rows: Row[]) => void;
   konturaOptions: string[];
+  autoKonturaStart?: number;
   tools?: Row[];
   toolColumns?: ColumnDef[];
   /** Ovlivňuje jen texty tlačítek/hlášek — "kontura" (výchozí) pro operace, "nastroj" pro katalog nástrojů. */
@@ -129,6 +131,7 @@ export default function DataTable({
           columns={columns}
           prevRow={rows[rows.length - 1]}
           konturaOptions={konturaOptions}
+          autoKonturaStart={autoKonturaStart}
           tools={tools}
           toolColumns={toolColumns}
           onClose={() => setShowModal(false)}

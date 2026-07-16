@@ -5,7 +5,7 @@ import { OPERATIONS, getToolColumns } from "@/lib/operations";
 import { computeOperation, Row } from "@/lib/results";
 import { useAllPartRows } from "@/lib/usePartRows";
 import { useAllTools } from "@/lib/useAllTools";
-import { collectKonturaNames } from "@/lib/konturaNames";
+import { collectKonturaNames, nextKonturaNumber } from "@/lib/konturaNames";
 import DataTable from "./DataTable";
 import ResultsPanel from "./ResultsPanel";
 import Summary from "./Summary";
@@ -16,12 +16,14 @@ function OperationTab({
   rows,
   setRows,
   konturaOptions,
+  autoKonturaStart,
   tools,
 }: {
   id: string;
   rows: Row[];
   setRows: (rows: Row[]) => void;
   konturaOptions: string[];
+  autoKonturaStart: number;
   tools: Row[] | undefined;
 }) {
   const config = OPERATIONS.find((o) => o.id === id)!;
@@ -36,6 +38,7 @@ function OperationTab({
         rows={rows}
         onChange={setRows}
         konturaOptions={konturaOptions}
+        autoKonturaStart={autoKonturaStart}
         tools={tools}
         toolColumns={toolColumns}
       />
@@ -49,6 +52,7 @@ export default function PartWorkspace({ partId }: { partId: string }) {
   const { hydrated, byId, setById } = useAllPartRows(partId);
   const { hydrated: toolsHydrated, byId: toolsById } = useAllTools();
   const konturaOptions = useMemo(() => collectKonturaNames(byId), [byId]);
+  const autoKontura = useMemo(() => nextKonturaNumber(byId), [byId]);
 
   return (
     <div>
@@ -73,6 +77,7 @@ export default function PartWorkspace({ partId }: { partId: string }) {
             rows={byId[active]}
             setRows={setById[active]}
             konturaOptions={konturaOptions}
+            autoKonturaStart={autoKontura}
             tools={toolsById[active]}
           />
         </div>

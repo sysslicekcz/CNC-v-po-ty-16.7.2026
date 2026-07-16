@@ -4,11 +4,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ColumnDef } from "@/lib/operations";
 import { Row } from "@/lib/results";
 
-function buildDefaultRow(columns: ColumnDef[], prevRow: Row | undefined): Row {
+function buildDefaultRow(columns: ColumnDef[], prevRow: Row | undefined, autoKontura: string | undefined): Row {
   const r: Row = {};
   for (const c of columns) {
     if (c.type !== "number") {
-      r[c.key] = "";
+      r[c.key] = c.key === "kontura" && autoKontura !== undefined ? autoKontura : "";
       continue;
     }
     // Rozměry konkrétní kontury (délka, průměry, počty…) se liší řádek od řádku,
@@ -27,11 +27,23 @@ function buildDefaultRow(columns: ColumnDef[], prevRow: Row | undefined): Row {
   return r;
 }
 
+/** Pole, na které se má přesunout fokus: u operací s automaticky číslovanou konturou
+ *  je to první sloupec za ní, který se sám nepředvyplní (ani řetězením, ani z
+ *  nástroje) - tedy první, co je opravdu potřeba dopsat ručně. U operací bez pole
+ *  "kontura" (přípravné časy) zůstává fokus na prvním sloupci jako dřív. */
+function getFocusKey(columns: ColumnDef[]): string | undefined {
+  const identIdx = columns.findIndex((c) => c.type === "text");
+  if (identIdx === -1 || columns[identIdx].key !== "kontura") return columns[0]?.key;
+  const next = columns.slice(identIdx + 1).find((c) => !c.chainFrom && !c.fromTool);
+  return next?.key ?? columns[identIdx]?.key;
+}
+
 export default function AddKonturaModal({
   title,
   columns,
   prevRow,
   konturaOptions,
+  autoKonturaStart,
   tools,
   toolColumns,
   onSubmit,
@@ -41,6 +53,8 @@ export default function AddKonturaModal({
   columns: ColumnDef[];
   prevRow: Row | undefined;
   konturaOptions: string[];
+  /** Další volné číslo kontury napříč celým dílem - undefined u operací bez pole "kontura". */
+  autoKonturaStart?: number;
   /** Katalog nástrojů dostupný pro tuto operaci (prázdné/chybí = žádný výběr nástroje). */
   tools?: Row[];
   /** Sloupce katalogu odpovídající poli "nazev" + fromTool polím této operace. */
@@ -48,11 +62,16 @@ export default function AddKonturaModal({
   onSubmit: (row: Row) => void;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<Row>(() => buildDefaultRow(columns, prevRow));
+  const isAutoNumbered = columns.some((c) => c.key === "kontura") && autoKonturaStart !== undefined;
+  const [counter, setCounter] = useState(autoKonturaStart ?? 1);
+  const [draft, setDraft] = useState<Row>(() =>
+    buildDefaultRow(columns, prevRow, isAutoNumbered ? String(autoKonturaStart) : undefined)
+  );
   const [toolSelectKey, setToolSelectKey] = useState(0);
   const [justAdded, setJustAdded] = useState(false);
   const listId = useId();
-  const firstFieldRef = useRef<HTMLInputElement>(null);
+  const focusKey = getFocusKey(columns);
+  const focusFieldRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -86,22 +105,22 @@ export default function AddKonturaModal({
   };
 
   // Enter (nebo tlačítko "Přidat a další") uloží konturu a rovnou připraví formulář
-  // na další, ať se nemusí po každé konturuře znovu otevírat dialog.
+  // na další, ať se nemusí po každé kontuře znovu otevírat dialog.
   const handleAddAndContinue = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(draft);
-    setDraft(buildDefaultRow(columns, draft));
+    const nextCounter = counter + 1;
+    setCounter(nextCounter);
+    setDraft(buildDefaultRow(columns, draft, isAutoNumbered ? String(nextCounter) : undefined));
     setToolSelectKey((k) => k + 1);
     setJustAdded(true);
-    firstFieldRef.current?.focus();
+    focusFieldRef.current?.focus();
   };
 
   const handleAddAndClose = () => {
     onSubmit(draft);
     onClose();
   };
-
-  const firstKey = columns[0]?.key;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
@@ -140,8 +159,8 @@ export default function AddKonturaModal({
                 {c.unit ? <span className="text-muted/70"> [{c.unit}]</span> : null}
               </span>
               <input
-                ref={c.key === firstKey ? firstFieldRef : undefined}
-                autoFocus={c.key === firstKey}
+                ref={c.key === focusKey ? focusFieldRef : undefined}
+                autoFocus={c.key === focusKey}
                 type={c.type === "number" ? "number" : "text"}
                 step="any"
                 list={c.key === "kontura" ? listId : undefined}
