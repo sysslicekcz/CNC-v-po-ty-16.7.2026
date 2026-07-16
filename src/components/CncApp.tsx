@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useCustomers, useInquiries, useParts } from "@/lib/entities";
+import { useCustomers, useInquiries, useParts, formatPartLabel, Part } from "@/lib/entities";
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
 import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
 import { TOOL_OPERATIONS, getToolColumns } from "@/lib/operations";
 import { useAllTools } from "@/lib/useAllTools";
 import DataTable from "./DataTable";
 import EntityList from "./EntityList";
+import PartList from "./PartList";
 import Breadcrumbs, { Crumb } from "./Breadcrumbs";
 import PartWorkspace from "./PartWorkspace";
 import TabButton from "./TabButton";
@@ -23,6 +24,7 @@ type View =
       inquiryId: string;
       inquiryNazev: string;
       partId: string;
+      partCisloVykresu: string;
       partNazev: string;
     }
   | { level: "nastroje" };
@@ -43,13 +45,13 @@ function HomeView({
     <div className="space-y-6">
       <div>
         <label className="mb-1 block text-xs uppercase tracking-wide text-muted">
-          Hledat díl, poptávku nebo zákazníka
+          Hledat díl podle čísla výkresu, názvu, poptávky nebo zákazníka
         </label>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="např. Hřídel 1"
+          placeholder="např. 1234-56 nebo Hřídel"
           className="w-full max-w-md rounded border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-accent"
         />
       </div>
@@ -66,7 +68,15 @@ function HomeView({
                     onClick={() => onOpenPart(r)}
                     className="flex w-full flex-col items-start gap-0.5 px-4 py-2 text-left hover:bg-surface-raised/50"
                   >
-                    <span className="text-sm text-foreground">{r.partNazev}</span>
+                    <span className="text-sm text-foreground">
+                      {r.partCisloVykresu ? (
+                        <>
+                          <span className="tabular text-accent">{r.partCisloVykresu}</span>
+                          <span className="text-muted"> · </span>
+                        </>
+                      ) : null}
+                      {r.partNazev}
+                    </span>
                     <span className="text-xs text-muted">
                       {r.customerNazev} / {r.inquiryNazev}
                     </span>
@@ -121,22 +131,10 @@ function InquiryView({
   onOpenPart,
 }: {
   inquiryId: string;
-  onOpenPart: (id: string, nazev: string) => void;
+  onOpenPart: (part: Part) => void;
 }) {
   const { items, hydrated, add, remove } = useParts(inquiryId);
-  return (
-    <EntityList
-      title="Díly"
-      items={items}
-      hydrated={hydrated}
-      onAdd={add}
-      onRemove={remove}
-      onOpen={(p) => onOpenPart(p.id, p.nazev)}
-      addPlaceholder="Název dílu"
-      emptyMessage="Zatím žádné díly. Založ první tlačítkem níže."
-      deleteNoun="díl"
-    />
-  );
+  return <PartList items={items} hydrated={hydrated} onAdd={add} onRemove={remove} onOpen={onOpenPart} />;
 }
 
 function ToolsView({
@@ -223,7 +221,7 @@ export default function CncApp() {
           }),
       },
     ];
-    current = view.partNazev;
+    current = formatPartLabel({ cisloVykresu: view.partCisloVykresu, nazev: view.partNazev });
   }
 
   return (
@@ -265,6 +263,7 @@ export default function CncApp() {
                 inquiryId: r.inquiryId,
                 inquiryNazev: r.inquiryNazev,
                 partId: r.partId,
+                partCisloVykresu: r.partCisloVykresu,
                 partNazev: r.partNazev,
               })
             }
@@ -285,15 +284,16 @@ export default function CncApp() {
         ) : view.level === "inquiry" ? (
           <InquiryView
             inquiryId={view.inquiryId}
-            onOpenPart={(id, nazev) =>
+            onOpenPart={(part) =>
               setView({
                 level: "part",
                 customerId: view.customerId,
                 customerNazev: view.customerNazev,
                 inquiryId: view.inquiryId,
                 inquiryNazev: view.inquiryNazev,
-                partId: id,
-                partNazev: nazev,
+                partId: part.id,
+                partCisloVykresu: part.cisloVykresu,
+                partNazev: part.nazev,
               })
             }
           />

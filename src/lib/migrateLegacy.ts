@@ -48,7 +48,7 @@ export async function migrateLegacyDataIfNeeded(): Promise<void> {
     const partId = crypto.randomUUID();
     await put("customers", { id: customerId, nazev: "Nezařazeno", createdAt: now });
     await put("inquiries", { id: inquiryId, customerId, nazev: "Migrovaná data", createdAt: now });
-    await put("parts", { id: partId, inquiryId, nazev: "Díl 1", createdAt: now });
+    await put("parts", { id: partId, inquiryId, cisloVykresu: "", nazev: "Díl 1", createdAt: now });
 
     for (const op of OPERATIONS) {
       const rows = legacyByOp[op.id];

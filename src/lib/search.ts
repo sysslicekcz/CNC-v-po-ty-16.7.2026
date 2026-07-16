@@ -10,6 +10,7 @@ export interface SearchEntry {
   inquiryId: string;
   inquiryNazev: string;
   partId: string;
+  partCisloVykresu: string;
   partNazev: string;
 }
 
@@ -34,6 +35,7 @@ async function buildIndex(): Promise<SearchEntry[]> {
       inquiryId: inquiry.id,
       inquiryNazev: inquiry.nazev,
       partId: part.id,
+      partCisloVykresu: part.cisloVykresu ?? "",
       partNazev: part.nazev,
     });
   }
@@ -62,6 +64,7 @@ export function filterEntries(entries: SearchEntry[], query: string): SearchEntr
   return entries.filter(
     (e) =>
       e.partNazev.toLocaleLowerCase("cs").includes(q) ||
+      e.partCisloVykresu.toLocaleLowerCase("cs").includes(q) ||
       e.inquiryNazev.toLocaleLowerCase("cs").includes(q) ||
       e.customerNazev.toLocaleLowerCase("cs").includes(q)
   );

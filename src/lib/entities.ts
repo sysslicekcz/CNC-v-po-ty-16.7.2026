@@ -19,8 +19,15 @@ export interface Inquiry {
 export interface Part {
   id: string;
   inquiryId: string;
+  cisloVykresu: string;
   nazev: string;
   createdAt: number;
+}
+
+/** Zobrazovací popisek dílu - "číslo výkresu · název", nebo jen název u starších/
+ *  migrovaných dílů bez čísla výkresu. */
+export function formatPartLabel(part: Pick<Part, "cisloVykresu" | "nazev">): string {
+  return part.cisloVykresu ? `${part.cisloVykresu} · ${part.nazev}` : part.nazev;
 }
 
 const byNewest = <T extends { createdAt: number }>(a: T, b: T) => b.createdAt - a.createdAt;
@@ -116,8 +123,8 @@ export function useParts(inquiryId: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload zavírá nad inquiryId
   }, [inquiryId]);
 
-  const add = async (nazev: string) => {
-    await put<Part>("parts", { id: crypto.randomUUID(), inquiryId, nazev, createdAt: Date.now() });
+  const add = async (cisloVykresu: string, nazev: string) => {
+    await put<Part>("parts", { id: crypto.randomUUID(), inquiryId, cisloVykresu, nazev, createdAt: Date.now() });
     reload();
   };
 
