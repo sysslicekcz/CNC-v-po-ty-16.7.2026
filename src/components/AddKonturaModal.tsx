@@ -11,6 +11,15 @@ function buildDefaultRow(columns: ColumnDef[], prevRow: Row | undefined): Row {
       r[c.key] = "";
       continue;
     }
+    // Rozměry konkrétní kontury (délka, průměry, počty…) se liší řádek od řádku,
+    // takže se nepředvyplňují. Přebírá se jen to, co je vázané na nástroj/proces
+    // (fromTool - posuv, řezná rychlost, hloubka záběru…) a explicitní řetězení
+    // (chainFrom - např. počáteční průměr navazuje na koncový průměr předchozí kontury).
+    const shouldPrefill = Boolean(c.chainFrom) || Boolean(c.fromTool);
+    if (!shouldPrefill) {
+      r[c.key] = null;
+      continue;
+    }
     const sourceKey = c.chainFrom ?? c.key;
     const prevVal = prevRow ? prevRow[sourceKey] : undefined;
     r[c.key] = typeof prevVal === "number" ? prevVal : null;
