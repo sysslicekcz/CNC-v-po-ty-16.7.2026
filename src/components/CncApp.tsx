@@ -2,22 +2,36 @@
 
 import { useMemo, useState } from "react";
 import { OPERATIONS } from "@/lib/operations";
-import { computeOperation } from "@/lib/results";
-import { useLocalRows } from "@/lib/useLocalRows";
+import { computeOperation, Row } from "@/lib/results";
+import { useAllRows } from "@/lib/useAllRows";
+import { collectKonturaNames } from "@/lib/konturaNames";
 import DataTable from "./DataTable";
 import ResultsPanel from "./ResultsPanel";
 import Summary from "./Summary";
 
-function OperationTab({ id }: { id: string }) {
+function OperationTab({
+  id,
+  rows,
+  setRows,
+  konturaOptions,
+}: {
+  id: string;
+  rows: Row[];
+  setRows: (rows: Row[]) => void;
+  konturaOptions: string[];
+}) {
   const config = OPERATIONS.find((o) => o.id === id)!;
-  const { rows, setRows, hydrated } = useLocalRows(id);
   const result = useMemo(() => computeOperation(id, rows), [id, rows]);
-
-  if (!hydrated) return null;
 
   return (
     <div>
-      <DataTable columns={config.columns} rows={rows} onChange={setRows} />
+      <DataTable
+        title={config.title}
+        columns={config.columns}
+        rows={rows}
+        onChange={setRows}
+        konturaOptions={konturaOptions}
+      />
       <ResultsPanel result={result} />
     </div>
   );
@@ -25,6 +39,8 @@ function OperationTab({ id }: { id: string }) {
 
 export default function CncApp() {
   const [active, setActive] = useState<string>("summary");
+  const { hydrated, byId, setById } = useAllRows();
+  const konturaOptions = useMemo(() => collectKonturaNames(byId), [byId]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -54,14 +70,19 @@ export default function CncApp() {
       </nav>
 
       <main>
-        {active === "summary" ? (
-          <Summary />
+        {!hydrated ? null : active === "summary" ? (
+          <Summary byId={byId} />
         ) : (
           <div>
             <h2 className="mb-3 text-lg font-medium">
               {OPERATIONS.find((o) => o.id === active)!.title}
             </h2>
-            <OperationTab id={active} />
+            <OperationTab
+              id={active}
+              rows={byId[active]}
+              setRows={setById[active]}
+              konturaOptions={konturaOptions}
+            />
           </div>
         )}
       </main>

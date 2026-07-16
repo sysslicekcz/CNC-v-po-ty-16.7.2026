@@ -1,23 +1,27 @@
 "use client";
 
+import { useId, useState } from "react";
 import { ColumnDef } from "@/lib/operations";
 import { Row } from "@/lib/results";
-
-function emptyRow(columns: ColumnDef[]): Row {
-  const r: Row = {};
-  for (const c of columns) r[c.key] = c.type === "number" ? null : "";
-  return r;
-}
+import AddKonturaModal from "./AddKonturaModal";
 
 export default function DataTable({
+  title,
   columns,
   rows,
   onChange,
+  konturaOptions,
 }: {
+  title: string;
   columns: ColumnDef[];
   rows: Row[];
   onChange: (rows: Row[]) => void;
+  konturaOptions: string[];
 }) {
+  const [showModal, setShowModal] = useState(false);
+  const listId = useId();
+  const identKey = columns.find((c) => c.type === "text")?.key;
+
   const updateCell = (idx: number, key: string, value: string) => {
     const next = rows.slice();
     const col = columns.find((c) => c.key === key)!;
@@ -28,8 +32,11 @@ export default function DataTable({
     onChange(next);
   };
 
-  const addRow = () => onChange([...rows, emptyRow(columns)]);
-  const removeRow = (idx: number) => onChange(rows.filter((_, i) => i !== idx));
+  const removeRow = (idx: number) => {
+    const label = identKey ? String(rows[idx][identKey] ?? "") : "";
+    if (!window.confirm(`Smazat konturu${label ? ` „${label}“` : ""}?`)) return;
+    onChange(rows.filter((_, i) => i !== idx));
+  };
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
@@ -49,45 +56,75 @@ export default function DataTable({
           {rows.length === 0 && (
             <tr>
               <td colSpan={columns.length + 1} className="px-3 py-6 text-center text-muted">
-                Zatím žádné kontury. Přidej řádek tlačítkem níže.
+                Zatím žádné kontury. Přidej konturu tlačítkem níže.
               </td>
             </tr>
           )}
-          {rows.map((row, idx) => (
-            <tr key={idx} className="border-b border-border/60 last:border-0 hover:bg-surface-raised/50">
-              {columns.map((c) => (
-                <td key={c.key} className="px-2 py-1">
-                  <input
-                    type={c.type === "number" ? "number" : "text"}
-                    step="any"
-                    value={row[c.key] === null || row[c.key] === undefined ? "" : row[c.key]!}
-                    onChange={(e) => updateCell(idx, c.key, e.target.value)}
-                    placeholder={c.type === "number" ? "0" : "—"}
-                    className="tabular w-full min-w-[6.5rem] rounded border border-transparent bg-transparent px-2 py-1 outline-none focus:border-accent focus:bg-surface"
-                  />
+          {rows.map((row, idx) => {
+            const rowStarted = identKey ? Boolean(row[identKey]) : true;
+            return (
+              <tr key={idx} className="border-b border-border/60 last:border-0 hover:bg-surface-raised/50">
+                {columns.map((c) => {
+                  const missing = c.type === "number" && rowStarted && (row[c.key] === null || row[c.key] === undefined);
+                  return (
+                    <td key={c.key} className="px-2 py-1">
+                      <input
+                        type={c.type === "number" ? "number" : "text"}
+                        step="any"
+                        list={c.key === "kontura" ? listId : undefined}
+                        value={row[c.key] === null || row[c.key] === undefined ? "" : row[c.key]!}
+                        onChange={(e) => updateCell(idx, c.key, e.target.value)}
+                        placeholder={c.type === "number" ? "0" : "—"}
+                        className={
+                          "tabular w-full min-w-[6.5rem] rounded border bg-transparent px-2 py-1 outline-none focus:border-accent focus:bg-surface " +
+                          (missing ? "border-danger/50 bg-danger/5" : "border-transparent")
+                        }
+                      />
+                    </td>
+                  );
+                })}
+                <td className="px-2 py-1 text-center">
+                  <button
+                    onClick={() => removeRow(idx)}
+                    aria-label="Smazat řádek"
+                    className="text-muted transition hover:text-danger"
+                  >
+                    ✕
+                  </button>
                 </td>
-              ))}
-              <td className="px-2 py-1 text-center">
-                <button
-                  onClick={() => removeRow(idx)}
-                  aria-label="Smazat řádek"
-                  className="text-muted transition hover:text-danger"
-                >
-                  ✕
-                </button>
-              </td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
+      {konturaOptions.length > 0 && (
+        <datalist id={listId}>
+          {konturaOptions.map((k) => (
+            <option key={k} value={k} />
+          ))}
+        </datalist>
+      )}
       <div className="border-t border-border p-2">
         <button
-          onClick={addRow}
+          onClick={() => setShowModal(true)}
           className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
         >
           + Přidat konturu
         </button>
       </div>
+      {showModal && (
+        <AddKonturaModal
+          title={title}
+          columns={columns}
+          prevRow={rows[rows.length - 1]}
+          konturaOptions={konturaOptions}
+          onClose={() => setShowModal(false)}
+          onSubmit={(row) => {
+            onChange([...rows, row]);
+            setShowModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

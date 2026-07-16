@@ -1,9 +1,15 @@
 "use client";
 
 import { useLocalRows } from "./useLocalRows";
+import { Row } from "./results";
 
 // Explicit calls (not a loop) to respect the Rules of Hooks — the set of
 // operations is static, so this is equivalent to a fixed list of useState calls.
+//
+// State for every operation lives here, in one place, keyed by operation id.
+// Tabs (CncApp/OperationTab) only ever receive rows/setRows as props for the
+// active id — they hold no per-operation state of their own, so switching
+// tabs can never mix up which operation a row belongs to.
 export function useAllRows() {
   const podelneVnejsi = useLocalRows("podelneVnejsi");
   const podelneVnitrni = useLocalRows("podelneVnitrni");
@@ -38,6 +44,17 @@ export function useAllRows() {
       brouseniNaKulato: brouseniNaKulato.rows,
       celniZapichy: celniZapichy.rows,
       pripravneCasy: pripravneCasy.rows,
-    } as Record<string, ReturnType<typeof useLocalRows>["rows"]>,
+    } as Record<string, Row[]>,
+    setById: {
+      podelneVnejsi: podelneVnejsi.setRows,
+      podelneVnitrni: podelneVnitrni.setRows,
+      pricne: pricne.setRows,
+      vrtani: vrtani.setRows,
+      zapich: zapich.setRows,
+      frezovaniDrazek: frezovaniDrazek.setRows,
+      brouseniNaKulato: brouseniNaKulato.setRows,
+      celniZapichy: celniZapichy.setRows,
+      pripravneCasy: pripravneCasy.setRows,
+    } as Record<string, (rows: Row[]) => void>,
   };
 }

@@ -6,6 +6,10 @@ export interface ColumnDef {
   unit?: string;
   type: FieldType;
   default?: number | string;
+  /** Při zadávání nové kontury se výchozí hodnota převezme z tohoto pole předchozí kontury
+   *  (místo ze stejnojmenného pole). Např. počáteční průměr nové kontury navazuje na koncový
+   *  průměr té předchozí. */
+  chainFrom?: string;
 }
 
 export interface OperationConfig {
@@ -22,7 +26,7 @@ export const OPERATIONS: OperationConfig[] = [
     shortTitle: "Podélné vnější",
     columns: [
       { key: "kontura", label: "Kontura", type: "text" },
-      { key: "Dc", label: "Počáteční průměr", unit: "mm", type: "number" },
+      { key: "Dc", label: "Počáteční průměr", unit: "mm", type: "number", chainFrom: "Df" },
       { key: "Df", label: "Koncový průměr", unit: "mm", type: "number" },
       { key: "L", label: "Délka úseku", unit: "mm", type: "number" },
       { key: "fHrub", label: "Posuv hrubování", unit: "mm/ot", type: "number" },
@@ -38,7 +42,7 @@ export const OPERATIONS: OperationConfig[] = [
     shortTitle: "Podélné vnitřní",
     columns: [
       { key: "kontura", label: "Kontura", type: "text" },
-      { key: "Dc", label: "Počáteční průměr", unit: "mm", type: "number" },
+      { key: "Dc", label: "Počáteční průměr", unit: "mm", type: "number", chainFrom: "Df" },
       { key: "Df", label: "Koncový průměr", unit: "mm", type: "number" },
       { key: "L", label: "Délka úseku", unit: "mm", type: "number" },
       { key: "fHrub", label: "Posuv hrubování", unit: "mm/ot", type: "number" },
