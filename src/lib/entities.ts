@@ -39,6 +39,10 @@ export interface Machine {
   nazev: string;
   /** Hodinová sazba stroje v Kč/hod. */
   sazba: number;
+  /** Id operací (viz MACHINE_OPERATIONS v operations.ts), které tenhle stroj umí -
+   *  např. soustruh nemá "brouseniNaKulato". Přípravné časy jsou vždy dostupné u
+   *  všech strojů, takže se sem nezapisují. */
+  operace: string[];
   createdAt: number;
 }
 
@@ -214,8 +218,15 @@ export function useMachines() {
   }, []);
   useReloadOnRestore(reload);
 
-  const add = async (nazev: string, sazba: number) => {
-    await put<Machine>("machines", { id: crypto.randomUUID(), nazev, sazba, createdAt: Date.now() });
+  const add = async (nazev: string, sazba: number, operace: string[]) => {
+    await put<Machine>("machines", { id: crypto.randomUUID(), nazev, sazba, operace, createdAt: Date.now() });
+    reload();
+  };
+
+  const update = async (id: string, patch: { nazev: string; sazba: number; operace: string[] }) => {
+    const current = items.find((m) => m.id === id);
+    if (!current) return;
+    await put<Machine>("machines", { ...current, ...patch });
     reload();
   };
 
@@ -224,7 +235,7 @@ export function useMachines() {
     reload();
   };
 
-  return { items, hydrated, add, remove };
+  return { items, hydrated, add, update, remove };
 }
 
 export function useCustomers() {

@@ -2,7 +2,7 @@
 // (po mountu, uvnitř useEffect), takže "indexedDB" tu nikdy nesahá na SSR.
 
 const DB_NAME = "cnc-casovac";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export type StoreName =
   | "customers"
@@ -24,8 +24,15 @@ function openDb(): Promise<IDBDatabase> {
         return;
       }
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
+      req.onupgradeneeded = (event) => {
         const db = req.result;
+        // v4: katalog nástrojů přešel z jednoho záznamu na operaci (keyPath "opId")
+        // na záznam na dvojici stroj+operace (keyPath "id" = `${strojId}:${opId}`,
+        // viz useAllTools.ts) - starý tvar nejde upravit na místě, tak se store
+        // založí znovu. Nejde o ztrátu dat, katalog nástrojů tou dobou byl prázdný.
+        if (event.oldVersion < 4 && db.objectStoreNames.contains("toolRows")) {
+          db.deleteObjectStore("toolRows");
+        }
         if (!db.objectStoreNames.contains("customers")) {
           db.createObjectStore("customers", { keyPath: "id" });
         }
@@ -45,7 +52,7 @@ function openDb(): Promise<IDBDatabase> {
           db.createObjectStore("partOperationRows", { keyPath: "id" }).createIndex("partId", "partId");
         }
         if (!db.objectStoreNames.contains("toolRows")) {
-          db.createObjectStore("toolRows", { keyPath: "opId" });
+          db.createObjectStore("toolRows", { keyPath: "id" });
         }
         if (!db.objectStoreNames.contains("machines")) {
           db.createObjectStore("machines", { keyPath: "id" });

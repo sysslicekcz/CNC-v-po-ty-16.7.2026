@@ -43,6 +43,7 @@ export default function EntityList<T extends EntityItem>({
   sortOptions,
   filterPredicate,
   confirmLabel,
+  hideAddForm,
 }: {
   title: string;
   items: T[];
@@ -67,6 +68,9 @@ export default function EntityList<T extends EntityItem>({
   filterPredicate?: (item: T, q: string) => boolean;
   /** Text položky v potvrzovacím dialogu při mazání (výchozí: název). */
   confirmLabel?: (item: T) => string;
+  /** Skryje vestavěný přidávací formulář - pro případy, kdy si přidávání/editaci
+   *  řeší volající sám (viz StrojeView v CncApp.tsx). */
+  hideAddForm?: boolean;
 }) {
   const [filter, setFilter] = useState("");
   const [newName, setNewName] = useState("");
@@ -171,25 +175,27 @@ export default function EntityList<T extends EntityItem>({
         )}
       </div>
 
-      <form onSubmit={submitAdd} className="flex max-w-lg gap-2">
-        {extraField?.position === "before" ? (
-          <>
-            {extraInput}
-            {nameInput}
-          </>
-        ) : (
-          <>
-            {nameInput}
-            {extraInput}
-          </>
-        )}
-        <button
-          type="submit"
-          className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
-        >
-          + Přidat
-        </button>
-      </form>
+      {!hideAddForm && (
+        <form onSubmit={submitAdd} className="flex max-w-lg gap-2">
+          {extraField?.position === "before" ? (
+            <>
+              {extraInput}
+              {nameInput}
+            </>
+          ) : (
+            <>
+              {nameInput}
+              {extraInput}
+            </>
+          )}
+          <button
+            type="submit"
+            className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+          >
+            + Přidat
+          </button>
+        </form>
+      )}
     </div>
   );
 }

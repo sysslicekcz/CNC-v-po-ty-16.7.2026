@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { OPERATIONS, getToolColumns } from "@/lib/operations";
+import { OPERATIONS, filterOperationsForMachine, getToolColumns } from "@/lib/operations";
 import { computeOperation, Row } from "@/lib/results";
 import { useAllPartRows } from "@/lib/usePartRows";
 import { useAllTools } from "@/lib/useAllTools";
@@ -81,10 +81,16 @@ export default function PartWorkspace({
 }) {
   const [active, setActive] = useState<string>("summary");
   const { hydrated, byId, setById } = useAllPartRows(positionId);
-  const { hydrated: toolsHydrated, byId: toolsById } = useAllTools();
+  const machine = machines.find((m) => m.id === strojId);
+  const { hydrated: toolsHydrated, byId: toolsById } = useAllTools(strojId);
   const konturaOptions = useMemo(() => collectKonturaNames(byId), [byId]);
   const autoKontura = useMemo(() => nextKonturaNumber(byId), [byId]);
-  const sazba = machines.find((m) => m.id === strojId)?.sazba;
+  const sazba = machine?.sazba;
+  const visibleOps = useMemo(() => filterOperationsForMachine(OPERATIONS, machine?.operace), [machine]);
+  // Když se přiřazený stroj změní a naposledy zvolená operace pro něj zmizí z
+  // nabídky (stroj ji neumí), odvodí se rovnou náhradní "Výstupy" - žádný extra
+  // efekt/setState není potřeba, je to čistě odvozená hodnota z "active" + "visibleOps".
+  const effectiveActive = active === "summary" || visibleOps.some((op) => op.id === active) ? active : "summary";
 
   return (
     <div>
@@ -112,26 +118,26 @@ export default function PartWorkspace({
       </div>
 
       <nav className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-3">
-        <TabButton active={active === "summary"} onClick={() => setActive("summary")}>
+        <TabButton active={effectiveActive === "summary"} onClick={() => setActive("summary")}>
           Výstupy
         </TabButton>
-        {OPERATIONS.map((op) => (
-          <TabButton key={op.id} active={active === op.id} onClick={() => setActive(op.id)}>
+        {visibleOps.map((op) => (
+          <TabButton key={op.id} active={effectiveActive === op.id} onClick={() => setActive(op.id)}>
             {op.shortTitle}
           </TabButton>
         ))}
       </nav>
 
-      {!hydrated || !toolsHydrated ? null : active === "summary" ? (
+      {!hydrated || !toolsHydrated ? null : effectiveActive === "summary" ? (
         <Summary byId={byId} partInfo={partInfo} sazba={sazba} />
       ) : (
         <OperationTab
-          id={active}
-          rows={byId[active]}
-          setRows={setById[active]}
+          id={effectiveActive}
+          rows={byId[effectiveActive]}
+          setRows={setById[effectiveActive]}
           konturaOptions={konturaOptions}
           autoKonturaStart={autoKontura}
-          tools={toolsById[active]}
+          tools={toolsById[effectiveActive]}
         />
       )}
     </div>

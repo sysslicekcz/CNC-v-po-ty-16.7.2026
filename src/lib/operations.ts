@@ -171,3 +171,15 @@ export function getToolColumns(op: OperationConfig): ColumnDef[] {
     ...op.columns.filter((c) => c.fromTool),
   ];
 }
+
+/** Obráběcí operace, u kterých má smysl říkat, jestli je stroj umí (na rozdíl od
+ *  přípravných časů, které jsou obecné a nejsou vázané na konkrétní stroj). */
+export const MACHINE_OPERATIONS: OperationConfig[] = OPERATIONS.filter((op) => op.id !== "pripravneCasy");
+
+/** Zúží seznam operací na ty, které daný stroj umí - přípravné časy jsou vždy
+ *  dostupné. Bez zadaného seznamu (žádný stroj vybraný/přiřazený) vrátí vše beze
+ *  změny, ať appka funguje i bez zavedených strojů. */
+export function filterOperationsForMachine<T extends OperationConfig>(pool: T[], operace: string[] | undefined): T[] {
+  if (!operace) return pool;
+  return pool.filter((op) => op.id === "pripravneCasy" || operace.includes(op.id));
+}

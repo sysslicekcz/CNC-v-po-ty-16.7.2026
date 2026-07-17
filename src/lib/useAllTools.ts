@@ -5,28 +5,47 @@ import { Row } from "./results";
 import { get, put } from "./db";
 
 interface ToolRowsRecord {
+  id: string;
+  strojId: string;
   opId: string;
   rows: Row[];
 }
 
-// Katalog nástrojů je globální (nezávislý na dílu) - jeden záznam v IndexedDB
-// store "toolRows" na operaci.
-function useToolRows(opId: string) {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+// Katalog nástrojů je teď per stroj (dřív byl globální, jeden na operaci) - záznam
+// v IndexedDB store "toolRows" je pod klíčem `${strojId}:${opId}`. Bez vybraného
+// stroje (strojId undefined) není co načítat - "rows"/"hydrated" se v tom případě
+// jen odvodí (žádný stroj = prázdný katalog, rovnou hydrated), appka nespadne
+// (viz ToolsView v CncApp.tsx, kde je výběr stroje pro editaci katalogu povinný).
+function useToolRows(strojId: string | undefined, opId: string) {
+  const id = strojId ? `${strojId}:${opId}` : null;
+  // Poslední úspěšně načtený/uložený stav pro konkrétní "id" - drží se zvlášť od
+  // odvozeného "rows" níže, ať přepnutí stroje (jiné "id") nikdy neukáže rows
+  // z předchozího stroje, dokud se nenačtou ty správné.
+  const [loaded, setLoaded] = useState<{ id: string; rows: Row[] } | null>(null);
 
   useEffect(() => {
-    get<ToolRowsRecord>("toolRows", opId).then((rec) => {
-      setRows(rec?.rows ?? []);
-      setHydrated(true);
+    if (!id) return;
+    let cancelled = false;
+    get<ToolRowsRecord>("toolRows", id).then((rec) => {
+      if (!cancelled) setLoaded({ id, rows: rec?.rows ?? [] });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- jednorázové načtení po mountu
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const hydrated = id === null || loaded?.id === id;
+  const rows = id !== null && loaded?.id === id ? loaded.rows : [];
+
+  const setRows = (next: Row[]) => {
+    if (!id) return; // bez vybraného stroje není kam ukládat - UI editaci v tom stavu nenabízí
+    setLoaded({ id, rows: next });
+  };
 
   useEffect(() => {
-    if (!hydrated) return;
-    put<ToolRowsRecord>("toolRows", { opId, rows });
-  }, [rows, hydrated, opId]);
+    if (!id || !strojId || loaded?.id !== id) return;
+    put<ToolRowsRecord>("toolRows", { id, strojId, opId, rows: loaded.rows });
+  }, [loaded, id, strojId, opId]);
 
   return { rows, setRows, hydrated };
 }
@@ -34,16 +53,16 @@ function useToolRows(opId: string) {
 // Stejný princip jako useAllPartRows: explicitní volání (ne smyčka) kvůli Rules of Hooks
 // — sada operací s nástroji je statická, takže je to ekvivalent pevného seznamu
 // useState volání.
-export function useAllTools() {
-  const podelneVnejsi = useToolRows("podelneVnejsi");
-  const podelneVnitrni = useToolRows("podelneVnitrni");
-  const pricne = useToolRows("pricne");
-  const vrtani = useToolRows("vrtani");
-  const zapich = useToolRows("zapich");
-  const frezovaniDrazek = useToolRows("frezovaniDrazek");
-  const brouseniNaKulato = useToolRows("brouseniNaKulato");
-  const celniZapichy = useToolRows("celniZapichy");
-  const pripravneCasy = useToolRows("pripravneCasy");
+export function useAllTools(strojId: string | undefined) {
+  const podelneVnejsi = useToolRows(strojId, "podelneVnejsi");
+  const podelneVnitrni = useToolRows(strojId, "podelneVnitrni");
+  const pricne = useToolRows(strojId, "pricne");
+  const vrtani = useToolRows(strojId, "vrtani");
+  const zapich = useToolRows(strojId, "zapich");
+  const frezovaniDrazek = useToolRows(strojId, "frezovaniDrazek");
+  const brouseniNaKulato = useToolRows(strojId, "brouseniNaKulato");
+  const celniZapichy = useToolRows(strojId, "celniZapichy");
+  const pripravneCasy = useToolRows(strojId, "pripravneCasy");
 
   const hydrated =
     podelneVnejsi.hydrated &&

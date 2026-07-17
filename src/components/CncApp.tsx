@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useCustomers, useInquiries, useParts, usePositions, useMachines, formatPartLabel, Part, Position } from "@/lib/entities";
+import { useCustomers, useInquiries, useParts, usePositions, useMachines, formatPartLabel, Part, Position, Machine } from "@/lib/entities";
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
 import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
 import { checkAvailable } from "@/lib/db";
-import { TOOL_OPERATIONS, getToolColumns } from "@/lib/operations";
+import { TOOL_OPERATIONS, MACHINE_OPERATIONS, filterOperationsForMachine, getToolColumns } from "@/lib/operations";
 import { useAllTools } from "@/lib/useAllTools";
 import { computePositionTotal } from "@/lib/positionTotal";
 import DataTable from "./DataTable";
@@ -331,81 +331,262 @@ function PartRouter({
 function ToolsView({
   toolsActive,
   setToolsActive,
+  strojId,
+  setStrojId,
 }: {
   toolsActive: string;
   setToolsActive: (id: string) => void;
+  strojId: string | undefined;
+  setStrojId: (id: string | undefined) => void;
 }) {
+  const { items: machines, hydrated: machinesHydrated } = useMachines();
+  const machine = machines.find((m) => m.id === strojId);
+  const opsForMachine = filterOperationsForMachine(TOOL_OPERATIONS, machine?.operace);
+  // Katalog je teď per stroj - pokud aktuálně vybraná záložka operace u zvoleného
+  // stroje nedává smysl (stroj tu operaci neumí, nebo se teprve vybírá stroj),
+  // rovnou spadneme na první operaci, kterou stroj podporuje.
+  const effectiveActive = opsForMachine.some((o) => o.id === toolsActive) ? toolsActive : opsForMachine[0]?.id;
+
   // Volá se, až když je CncApp jistě po migraci (viz "!migrated ? null : ..." níže) -
   // kdyby se tenhle hook volal dřív, mohl by načíst katalog nástrojů ještě před tím,
   // než ho migrace ze staré localStorage stihne dopsat do IndexedDB.
-  const { hydrated, byId, setById } = useAllTools();
+  const { hydrated: toolsHydrated, byId, setById } = useAllTools(strojId);
   const [showModal, setShowModal] = useState(false);
-  if (!hydrated) return null;
-  const config = TOOL_OPERATIONS.find((o) => o.id === toolsActive)!;
-  const columns = getToolColumns(config);
-  const rows = byId[toolsActive];
-  const isPrep = toolsActive === "pripravneCasy";
+
+  useEffect(() => {
+    if (effectiveActive && effectiveActive !== toolsActive) setToolsActive(effectiveActive);
+  }, [effectiveActive, toolsActive, setToolsActive]);
+
+  if (!machinesHydrated) return null;
+
+  if (machines.length === 0) {
+    return (
+      <div>
+        <h2 className="mb-3 text-lg font-medium">Katalog nástrojů a šablon</h2>
+        <p className="max-w-2xl text-sm text-muted">
+          Katalog nástrojů je veden zvlášť pro každý stroj. Nejdřív založ aspoň jeden stroj v záložce{" "}
+          <span className="text-foreground">Stroje</span>.
+        </p>
+      </div>
+    );
+  }
+
+  const config = effectiveActive ? TOOL_OPERATIONS.find((o) => o.id === effectiveActive)! : undefined;
+  const columns = config ? getToolColumns(config) : [];
+  const rows = effectiveActive ? byId[effectiveActive] : [];
+  const isPrep = effectiveActive === "pripravneCasy";
   const addLabel = isPrep ? "+ Přidat šablonu" : "+ Přidat nástroj";
 
   return (
     <div>
       <h2 className="mb-3 text-lg font-medium">Katalog nástrojů a šablon</h2>
       <p className="mb-4 max-w-2xl text-sm text-muted">
-        {isPrep
-          ? "Předdefinuj časté přípravné úkony s jejich časem. Při zadávání přípravného času je pak půjde vybrat ze seznamu a čas se předvyplní."
-          : "Předdefinuj nástroje s jejich posuvy, řeznými rychlostmi a rozměry. Při zadávání kontury je pak půjde vybrat ze seznamu a příslušná pole se předvyplní."}
+        Katalog nástrojů je veden zvlášť pro každý stroj - vyber stroj a jen u něj přednastav nástroje,
+        které umí (podle operací zvolených u stroje v záložce Stroje).
       </p>
-      <nav className="mb-4 flex flex-wrap gap-1.5">
-        {TOOL_OPERATIONS.map((op) => (
-          <TabButton key={op.id} active={toolsActive === op.id} onClick={() => setToolsActive(op.id)}>
-            {op.shortTitle}
-          </TabButton>
-        ))}
-      </nav>
-      <div className="mb-3">
-        <button
-          onClick={() => setShowModal(true)}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+        <label className="text-muted">Stroj:</label>
+        <select
+          value={strojId ?? ""}
+          onChange={(e) => setStrojId(e.target.value || undefined)}
+          className="rounded border border-border bg-transparent px-2 py-1 outline-none focus:border-accent"
         >
-          {addLabel}
-        </button>
+          <option value="" disabled>
+            — vyber stroj —
+          </option>
+          {machines.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.nazev}
+            </option>
+          ))}
+        </select>
       </div>
-      <DataTable columns={columns} rows={rows} onChange={setById[toolsActive]} konturaOptions={[]} itemKind="nastroj" />
-      {showModal && (
-        <AddKonturaModal
-          title={`${isPrep ? "Šablony" : "Nástroje"} — ${config.title}`}
-          columns={columns}
-          prevRow={rows[rows.length - 1]}
-          konturaOptions={[]}
-          onClose={() => setShowModal(false)}
-          onSubmit={(row) => setById[toolsActive]([...rows, row])}
-        />
+
+      {!strojId || !config ? (
+        <div className="rounded-lg border border-border bg-surface p-8 text-center text-sm text-muted">
+          Vyber stroj, jehož katalog nástrojů chceš spravovat.
+        </div>
+      ) : !toolsHydrated ? null : (
+        <>
+          <nav className="mb-4 flex flex-wrap gap-1.5">
+            {opsForMachine.map((op) => (
+              <TabButton key={op.id} active={effectiveActive === op.id} onClick={() => setToolsActive(op.id)}>
+                {op.shortTitle}
+              </TabButton>
+            ))}
+          </nav>
+          <div className="mb-3">
+            <button
+              onClick={() => setShowModal(true)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+            >
+              {addLabel}
+            </button>
+          </div>
+          <DataTable columns={columns} rows={rows} onChange={setById[effectiveActive]} konturaOptions={[]} itemKind="nastroj" />
+          {showModal && (
+            <AddKonturaModal
+              title={`${isPrep ? "Šablony" : "Nástroje"} — ${config.title}`}
+              columns={columns}
+              prevRow={rows[rows.length - 1]}
+              konturaOptions={[]}
+              onClose={() => setShowModal(false)}
+              onSubmit={(row) => setById[effectiveActive]([...rows, row])}
+            />
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function StrojeView() {
-  const { items, hydrated, add, remove } = useMachines();
+function MachineForm({
+  initial,
+  onSubmit,
+  onCancel,
+}: {
+  initial?: Machine;
+  onSubmit: (fields: { nazev: string; sazba: number; operace: string[] }) => void;
+  onCancel: () => void;
+}) {
+  const [nazev, setNazev] = useState(initial?.nazev ?? "");
+  const [sazba, setSazba] = useState(initial ? String(initial.sazba) : "");
+  const [operace, setOperace] = useState<string[]>(initial?.operace ?? MACHINE_OPERATIONS.map((o) => o.id));
+
+  const toggle = (id: string) => {
+    setOperace((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedNazev = nazev.trim();
+    const sazbaNum = Number(sazba);
+    if (!trimmedNazev || !Number.isFinite(sazbaNum) || sazbaNum < 0) return;
+    onSubmit({ nazev: trimmedNazev, sazba: sazbaNum, operace });
+  };
+
   return (
-    <div>
-      <h2 className="mb-3 text-lg font-medium">Stroje</h2>
-      <p className="mb-4 max-w-2xl text-sm text-muted">
-        Založ stroje s jejich hodinovou sazbou. U poloh dílů pak půjde vybrat, na kterém stroji se
-        dělaly, a appka k výrobnímu času dopočítá cenu.
+    <form onSubmit={submit} className="max-w-lg space-y-4 rounded-lg border border-border bg-surface p-4">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={nazev}
+          onChange={(e) => setNazev(e.target.value)}
+          placeholder="Název stroje"
+          className="flex-1 rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
+        />
+        <input
+          type="number"
+          value={sazba}
+          onChange={(e) => setSazba(e.target.value)}
+          placeholder="Sazba Kč/hod"
+          className="w-36 rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
+        />
+      </div>
+      <div>
+        <div className="mb-1.5 text-xs uppercase tracking-wide text-muted">Podporované operace</div>
+        <div className="flex flex-wrap gap-1.5">
+          {MACHINE_OPERATIONS.map((op) => {
+            const active = operace.includes(op.id);
+            return (
+              <button
+                type="button"
+                key={op.id}
+                onClick={() => toggle(op.id)}
+                aria-pressed={active}
+                className={
+                  "rounded-md border px-2.5 py-1 text-sm transition " +
+                  (active
+                    ? "border-accent-dim bg-accent-dim/30 text-accent"
+                    : "border-border text-muted hover:text-foreground")
+                }
+              >
+                {op.shortTitle}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+        >
+          {initial ? "Uložit" : "+ Přidat stroj"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5 text-sm text-muted transition hover:text-foreground"
+        >
+          Zrušit
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function StrojeView() {
+  const { items, hydrated, add, update, remove } = useMachines();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  if (!hydrated) return null;
+  const editing = items.find((m) => m.id === editingId);
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-medium">Stroje</h2>
+      <p className="max-w-2xl text-sm text-muted">
+        Založ stroje s jejich hodinovou sazbou a operacemi, které umí (např. soustruh neumí brousit).
+        U poloh dílů pak půjde vybrat, na kterém stroji se dělaly - appka k výrobnímu času dopočítá
+        cenu a v pracovním prostoru dílu nabídne jen operace, které ten stroj podporuje.
       </p>
+
+      {editing ? (
+        <MachineForm
+          initial={editing}
+          onSubmit={(fields) => {
+            update(editing.id, fields);
+            setEditingId(null);
+          }}
+          onCancel={() => setEditingId(null)}
+        />
+      ) : showAdd ? (
+        <MachineForm
+          onSubmit={(fields) => {
+            add(fields.nazev, fields.sazba, fields.operace);
+            setShowAdd(false);
+          }}
+          onCancel={() => setShowAdd(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setShowAdd(true)}
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+        >
+          + Přidat stroj
+        </button>
+      )}
+
       <EntityList
         title="Seznam strojů"
         items={items}
         hydrated={hydrated}
-        onAdd={(f) => add(f.nazev, Number(f.sazba))}
-        onRemove={remove}
-        onOpen={() => {}}
-        addPlaceholder="Název stroje"
-        emptyMessage="Zatím žádné stroje. Založ první tlačítkem níže."
+        onAdd={() => {}}
+        onRemove={(id) => {
+          remove(id);
+          if (editingId === id) setEditingId(null);
+        }}
+        onOpen={(m) => {
+          setShowAdd(false);
+          setEditingId(m.id);
+        }}
+        addPlaceholder=""
+        emptyMessage="Zatím žádné stroje. Založ první tlačítkem výše."
         deleteNoun="stroj"
-        extraField={{ key: "sazba", label: "Sazba Kč/hod", type: "number" }}
-        renderExtra={(m) => formatKc(m.sazba) + "/hod"}
+        hideAddForm
+        renderExtra={(m) => `${formatKc(m.sazba)}/hod`}
       />
     </div>
   );
@@ -416,6 +597,7 @@ export default function CncApp() {
   const [dbError, setDbError] = useState<string | null>(null);
   const [view, setView] = useState<View>({ level: "home" });
   const [toolsActive, setToolsActive] = useState<string>(TOOL_OPERATIONS[0].id);
+  const [nastrojeStrojId, setNastrojeStrojId] = useState<string | undefined>(undefined);
   // Poslední navštívené místo mimo Nástroje/Zálohy - umožňuje se odtamtud vrátit
   // jedním krokem přímo tam, kde uživatel byl (ne jen na Domů). Nastavuje se přímo
   // při renderu (ne v efektu), stejným způsobem jako React doporučuje pro odvozený
@@ -597,7 +779,12 @@ export default function CncApp() {
             onClearPosition={() => setView({ ...view, positionId: undefined, positionNazev: undefined })}
           />
         ) : view.level === "nastroje" ? (
-          <ToolsView toolsActive={toolsActive} setToolsActive={setToolsActive} />
+          <ToolsView
+            toolsActive={toolsActive}
+            setToolsActive={setToolsActive}
+            strojId={nastrojeStrojId}
+            setStrojId={setNastrojeStrojId}
+          />
         ) : view.level === "stroje" ? (
           <StrojeView />
         ) : (
