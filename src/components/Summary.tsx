@@ -47,7 +47,7 @@ export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]
                 <span className="text-foreground">{partInfo.customerNazev}</span>
               </div>
               <div>
-                <span className="text-xs text-muted">Poptávka: </span>
+                <span className="text-xs text-muted">Poptávka/Zakázka: </span>
                 <span className="text-foreground">{partInfo.inquiryNazev}</span>
               </div>
               <div>

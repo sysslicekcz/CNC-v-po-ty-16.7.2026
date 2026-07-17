@@ -68,7 +68,7 @@ function HomeView({
     <div className="space-y-6">
       <div>
         <label className="mb-1 block text-xs uppercase tracking-wide text-muted">
-          Hledat díl podle čísla výkresu, názvu, poptávky nebo zákazníka
+          Hledat díl podle čísla výkresu, názvu, poptávky/zakázky nebo zákazníka
         </label>
         <input
           type="text"
@@ -136,15 +136,15 @@ function CustomerView({
   const { items, hydrated, add, remove } = useInquiries(customerId);
   return (
     <EntityList
-      title="Poptávky"
+      title="Poptávky/Zakázky"
       items={items}
       hydrated={hydrated}
       onAdd={add}
       onRemove={remove}
       onOpen={(i) => onOpenInquiry(i.id, i.nazev)}
-      addPlaceholder="Název/číslo poptávky"
-      emptyMessage="Zatím žádné poptávky. Založ první tlačítkem níže."
-      deleteNoun="poptávku"
+      addPlaceholder="Název/číslo poptávky/zakázky"
+      emptyMessage="Zatím žádné poptávky/zakázky. Založ první tlačítkem níže."
+      deleteNoun="poptávku/zakázku"
     />
   );
 }

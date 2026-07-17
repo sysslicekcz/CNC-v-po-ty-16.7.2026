@@ -62,7 +62,7 @@ export default function BackupView() {
       <div>
         <h2 className="mb-1 text-lg font-medium">Export dat</h2>
         <p className="mb-3 text-sm text-muted">
-          Stáhne všechny zákazníky, poptávky, díly a katalog nástrojů jako jeden soubor.
+          Stáhne všechny zákazníky, poptávky/zakázky, díly a katalog nástrojů jako jeden soubor.
         </p>
         <button
           onClick={handleExport}
