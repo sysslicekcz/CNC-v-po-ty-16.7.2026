@@ -5,14 +5,23 @@ import { useCustomers, useInquiries, useParts, usePositions, useMachines, format
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
 import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
 import { checkAvailable } from "@/lib/db";
-import { TOOL_OPERATIONS, MACHINE_OPERATIONS, filterOperationsForMachine, getToolColumns } from "@/lib/operations";
+import {
+  TOOL_OPERATIONS,
+  MACHINE_OPERATIONS,
+  filterOperationsForMachine,
+  getToolColumns,
+  OperationConfig,
+  ColumnDef,
+} from "@/lib/operations";
 import { useAllTools } from "@/lib/useAllTools";
+import { useUndoableRows } from "@/lib/useUndoableRows";
 import { computePositionTotal } from "@/lib/positionTotal";
+import { Row } from "@/lib/results";
 import DataTable from "./DataTable";
 import AddKonturaModal from "./AddKonturaModal";
 import EntityList from "./EntityList";
 import Breadcrumbs, { Crumb } from "./Breadcrumbs";
-import PartWorkspace from "./PartWorkspace";
+import PartWorkspace, { actionButtonClass } from "./PartWorkspace";
 import BackupView from "./BackupView";
 import TabButton from "./TabButton";
 import UndoToast from "./UndoToast";
@@ -278,10 +287,7 @@ function PartRouter({
           onSetStroj={(strojId) => setStroj(view.positionId!, strojId)}
         />
         {items.length === 1 && (
-          <button
-            onClick={onClearPosition}
-            className="mt-4 text-sm text-muted underline decoration-dotted hover:text-accent"
-          >
+          <button onClick={onClearPosition} className={"mt-4 " + actionButtonClass()}>
             + Přidat polohu
           </button>
         )}
@@ -328,6 +334,52 @@ function PartRouter({
   );
 }
 
+function ToolCatalogTab({
+  config,
+  columns,
+  rows,
+  setRows,
+  isPrep,
+}: {
+  config: OperationConfig;
+  columns: ColumnDef[];
+  rows: Row[];
+  setRows: (rows: Row[]) => void;
+  isPrep: boolean;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const { onChange, clearAll, undo, canUndo } = useUndoableRows(rows, setRows);
+  const addLabel = isPrep ? "+ Přidat šablonu" : "+ Přidat nástroj";
+  const clearLabel = isPrep ? "Smazat všechny šablony" : "Smazat všechny nástroje";
+
+  return (
+    <>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <button onClick={() => setShowModal(true)} className={actionButtonClass()}>
+          {addLabel}
+        </button>
+        <button onClick={undo} disabled={!canUndo} className={actionButtonClass(!canUndo)}>
+          Krok zpět
+        </button>
+        <button onClick={clearAll} disabled={rows.length === 0} className={actionButtonClass(rows.length === 0)}>
+          {clearLabel}
+        </button>
+      </div>
+      <DataTable columns={columns} rows={rows} onChange={onChange} konturaOptions={[]} itemKind="nastroj" />
+      {showModal && (
+        <AddKonturaModal
+          title={`${isPrep ? "Šablony" : "Nástroje"} — ${config.title}`}
+          columns={columns}
+          prevRow={rows[rows.length - 1]}
+          konturaOptions={[]}
+          onClose={() => setShowModal(false)}
+          onSubmit={(row) => onChange([...rows, row])}
+        />
+      )}
+    </>
+  );
+}
+
 function ToolsView({
   toolsActive,
   setToolsActive,
@@ -351,7 +403,6 @@ function ToolsView({
   // kdyby se tenhle hook volal dřív, mohl by načíst katalog nástrojů ještě před tím,
   // než ho migrace ze staré localStorage stihne dopsat do IndexedDB.
   const { hydrated: toolsHydrated, byId, setById } = useAllTools(strojId);
-  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (effectiveActive && effectiveActive !== toolsActive) setToolsActive(effectiveActive);
@@ -375,7 +426,6 @@ function ToolsView({
   const columns = config ? getToolColumns(config) : [];
   const rows = effectiveActive ? byId[effectiveActive] : [];
   const isPrep = effectiveActive === "pripravneCasy";
-  const addLabel = isPrep ? "+ Přidat šablonu" : "+ Přidat nástroj";
 
   return (
     <div>
@@ -415,25 +465,14 @@ function ToolsView({
               </TabButton>
             ))}
           </nav>
-          <div className="mb-3">
-            <button
-              onClick={() => setShowModal(true)}
-              className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
-            >
-              {addLabel}
-            </button>
-          </div>
-          <DataTable columns={columns} rows={rows} onChange={setById[effectiveActive]} konturaOptions={[]} itemKind="nastroj" />
-          {showModal && (
-            <AddKonturaModal
-              title={`${isPrep ? "Šablony" : "Nástroje"} — ${config.title}`}
-              columns={columns}
-              prevRow={rows[rows.length - 1]}
-              konturaOptions={[]}
-              onClose={() => setShowModal(false)}
-              onSubmit={(row) => setById[effectiveActive]([...rows, row])}
-            />
-          )}
+          <ToolCatalogTab
+            key={`${strojId}:${effectiveActive}`}
+            config={config}
+            columns={columns}
+            rows={rows}
+            setRows={setById[effectiveActive]}
+            isPrep={isPrep}
+          />
         </>
       )}
     </div>
@@ -508,10 +547,7 @@ function MachineForm({
         </div>
       </div>
       <div className="flex gap-2">
-        <button
-          type="submit"
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
-        >
+        <button type="submit" className={actionButtonClass()}>
           {initial ? "Uložit" : "+ Přidat stroj"}
         </button>
         <button
@@ -561,10 +597,7 @@ function StrojeView() {
           onCancel={() => setShowAdd(false)}
         />
       ) : (
-        <button
-          onClick={() => setShowAdd(true)}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
-        >
+        <button onClick={() => setShowAdd(true)} className={actionButtonClass()}>
           + Přidat stroj
         </button>
       )}

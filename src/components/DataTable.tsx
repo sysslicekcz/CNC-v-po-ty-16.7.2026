@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { ColumnDef } from "@/lib/operations";
 import { Row } from "@/lib/results";
 
@@ -45,13 +45,6 @@ export default function DataTable({
   const [filterText, setFilterText] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [lastRemoved, setLastRemoved] = useState<{ row: Row; idx: number } | null>(null);
-
-  useEffect(() => {
-    if (!lastRemoved) return;
-    const t = setTimeout(() => setLastRemoved(null), 8000);
-    return () => clearTimeout(t);
-  }, [lastRemoved]);
 
   const toggleSort = (key: string) => {
     if (sortKey !== key) {
@@ -78,16 +71,7 @@ export default function DataTable({
     const label = identKey ? String(rows[idx][identKey] ?? "") : "";
     const deleteNoun = itemKind === "nastroj" ? "nástroj" : "konturu";
     if (!window.confirm(`Smazat ${deleteNoun}${label ? ` „${label}“` : ""}?`)) return;
-    setLastRemoved({ row: rows[idx], idx });
     onChange(rows.filter((_, i) => i !== idx));
-  };
-
-  const undoRemove = () => {
-    if (!lastRemoved) return;
-    const next = rows.slice();
-    next.splice(lastRemoved.idx, 0, lastRemoved.row);
-    onChange(next);
-    setLastRemoved(null);
   };
 
   // Index k původnímu poli se drží zvlášť, aby úpravy/mazání fungovaly správně
@@ -113,14 +97,6 @@ export default function DataTable({
     // Full-bleed: tabulka sahá přes celou šířku obrazovky bez ohledu na to, že rodič
     // (stránka) má omezenou max-šířku - ať je co nejméně potřeba scrollovat v ose X.
     <div className="relative left-1/2 w-screen -translate-x-1/2 px-4 sm:px-6 lg:px-8">
-      {lastRemoved && (
-        <div className="mb-2 flex items-center gap-3 rounded-md border border-border bg-surface-raised px-3 py-1.5 text-sm">
-          <span className="text-muted">Řádek smazán.</span>
-          <button onClick={undoRemove} className="font-medium text-accent transition hover:underline">
-            Vrátit zpět
-          </button>
-        </div>
-      )}
       {rows.length > 3 && (
         <input
           type="text"

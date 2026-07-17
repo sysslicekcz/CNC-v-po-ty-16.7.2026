@@ -5,6 +5,7 @@ import { OPERATIONS, filterOperationsForMachine, getToolColumns } from "@/lib/op
 import { computeOperation, Row } from "@/lib/results";
 import { useAllPartRows } from "@/lib/usePartRows";
 import { useAllTools } from "@/lib/useAllTools";
+import { useUndoableRows } from "@/lib/useUndoableRows";
 import { collectKonturaNames, nextKonturaNumber } from "@/lib/konturaNames";
 import { Machine } from "@/lib/entities";
 import DataTable from "./DataTable";
@@ -12,6 +13,17 @@ import AddKonturaModal from "./AddKonturaModal";
 import ResultsPanel from "./ResultsPanel";
 import Summary, { SummaryPartInfo } from "./Summary";
 import TabButton from "./TabButton";
+
+// Sjednocené umístění akčních tlačítek nad tabulkou (přidat/krok zpět/smazat
+// vše) - stejný styl a zarovnání vlevo jako "+ Přidat nástroj" v Nástrojích.
+export function actionButtonClass(disabled = false): string {
+  return (
+    "rounded-md border px-3 py-1.5 text-sm transition " +
+    (disabled
+      ? "cursor-not-allowed border-border/50 text-muted/50"
+      : "border-border text-foreground hover:border-accent hover:text-accent")
+  );
+}
 
 function OperationTab({
   id,
@@ -32,19 +44,23 @@ function OperationTab({
   const config = OPERATIONS.find((o) => o.id === id)!;
   const result = useMemo(() => computeOperation(id, rows), [id, rows]);
   const toolColumns = tools ? getToolColumns(config) : undefined;
+  const { onChange, clearAll, undo, canUndo } = useUndoableRows(rows, setRows);
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-base font-medium">{config.title}</h3>
-        <button
-          onClick={() => setShowModal(true)}
-          className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
-        >
+      <h3 className="mb-3 text-base font-medium">{config.title}</h3>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <button onClick={() => setShowModal(true)} className={actionButtonClass()}>
           + Přidat konturu
         </button>
+        <button onClick={undo} disabled={!canUndo} className={actionButtonClass(!canUndo)}>
+          Krok zpět
+        </button>
+        <button onClick={clearAll} disabled={rows.length === 0} className={actionButtonClass(rows.length === 0)}>
+          Smazat všechny kontury
+        </button>
       </div>
-      <DataTable columns={config.columns} rows={rows} onChange={setRows} konturaOptions={konturaOptions} />
+      <DataTable columns={config.columns} rows={rows} onChange={onChange} konturaOptions={konturaOptions} />
       <ResultsPanel result={result} />
       {showModal && (
         <AddKonturaModal
@@ -56,7 +72,7 @@ function OperationTab({
           tools={tools}
           toolColumns={toolColumns}
           onClose={() => setShowModal(false)}
-          onSubmit={(row) => setRows([...rows, row])}
+          onSubmit={(row) => onChange([...rows, row])}
         />
       )}
     </div>
@@ -132,6 +148,7 @@ export default function PartWorkspace({
         <Summary byId={byId} partInfo={partInfo} sazba={sazba} />
       ) : (
         <OperationTab
+          key={effectiveActive}
           id={effectiveActive}
           rows={byId[effectiveActive]}
           setRows={setById[effectiveActive]}
