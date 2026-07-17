@@ -41,7 +41,10 @@ export function calcPodelne(rows: PodelneRow[], typ: string): CalcOutput {
   const out: OpResult[] = [];
   let total = 0;
   for (const r of rows) {
-    if (!(r.L > 0)) continue;
+    if (!(r.L > 0 && r.ap > 0 && r.fHrub > 0 && r.fDok > 0 && r.VcHrub > 0 && r.VcDok > 0)) {
+      if (r.kontura) out.push({ label: `Podélné soustružení (${typ})`, kontura: r.kontura, cas: null, note: "Chyba - neplatná data" });
+      continue;
+    }
     const dAvg = (r.Dc + r.Df) / 2;
     const pocetPruchodu = Math.ceil(Math.abs(r.Dc - r.Df) / (2 * r.ap));
     const nHrub = (1000 * r.VcHrub) / (PI * dAvg);
@@ -72,7 +75,10 @@ export function calcPricne(rows: PricneRow[]): CalcOutput {
   const out: OpResult[] = [];
   let total = 0;
   for (const r of rows) {
-    if (!(r.W > 0)) continue;
+    if (!(r.W > 0 && r.ap > 0 && r.f > 0 && r.Vc > 0)) {
+      if (r.kontura) out.push({ label: "Příčné soustružení", kontura: r.kontura, cas: null, note: "Chyba - neplatná data" });
+      continue;
+    }
     const pocetPruchodu = Math.ceil(r.W / r.ap);
     const dAvg = (r.D + r.d) / 2;
     const n = (1000 * r.Vc) / (PI * dAvg);
@@ -99,7 +105,10 @@ export function calcVrtani(rows: VrtaniRow[]): CalcOutput {
   const out: OpResult[] = [];
   let total = 0;
   for (const r of rows) {
-    if (!(r.pocetDer > 0)) continue;
+    if (!(r.pocetDer > 0 && r.D > 0 && r.f > 0 && r.Vc > 0)) {
+      if (r.kontura) out.push({ label: "Vrtání", kontura: r.kontura, cas: null, note: "Chyba - neplatná data" });
+      continue;
+    }
     const n = (1000 * r.Vc) / (PI * r.D);
     const cas = r.pocetDer * (r.L / (r.f * n));
     out.push({ label: "Vrtání", kontura: r.kontura, cas: round2(cas) });
@@ -124,18 +133,24 @@ export function calcZapich(rows: ZapichRow[]): CalcOutput {
   const out: OpResult[] = [];
   let total = 0;
   for (const r of rows) {
-    if (!(r.D1 > r.D2 && r.W > 0 && r.Fax > 0 && r.Vc > 0 && r.Wnuz > 0 && r.Rap > 0)) {
+    // W < Wnuz nejde fyzicky vyrobit (nůž širší než zápich) - dřív to prošlo validací
+    // a vyšel z toho záporný čas (W - Wnuz záporné).
+    if (!(r.D1 > r.D2 && r.W > 0 && r.Fax > 0 && r.Vc > 0 && r.Wnuz > 0 && r.Rap > 0 && r.W >= r.Wnuz)) {
       if (r.kontura) out.push({ label: "Soustružení zápichu", kontura: r.kontura, cas: null, note: "Chyba - neplatná data" });
       continue;
     }
+    // Axiální rozšíření nad šířku nože (0 = zápich přesně na šířku nože, jen radiální náběh).
     const delkaPruchodu = r.W - r.Wnuz;
     let aktualniPrumer = r.D1;
     let cas = 0;
     let guard = 0;
     while (aktualniPrumer > r.D2 && guard < 10000) {
+      // Radiální krok byl dřív úplně mimo výpočet (počítal se jen axiální průjezd) -
+      // poslední krok navíc nesmí přestřelit pod D2.
+      const radialniKrok = Math.min(r.Rap, aktualniPrumer - r.D2);
       const n = (1000 * r.Vc) / (PI * aktualniPrumer);
-      cas += delkaPruchodu / (r.Fax * n);
-      aktualniPrumer -= r.Rap;
+      cas += (radialniKrok + delkaPruchodu) / (r.Fax * n);
+      aktualniPrumer -= radialniKrok;
       guard++;
     }
     out.push({ label: "Soustružení zápichu", kontura: r.kontura, cas: round2(cas) });

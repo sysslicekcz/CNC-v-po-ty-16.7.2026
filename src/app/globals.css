@@ -34,6 +34,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Full-bleed tabulky (100vw) mohou o pár px přesáhnout viditelnou šířku kvůli
+     vlastnímu scrollbaru - ať to nezpůsobí vodorovný scroll celé stránky. */
+  overflow-x: hidden;
 }
 
 ::selection {

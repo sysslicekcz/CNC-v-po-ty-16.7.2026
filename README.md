@@ -41,6 +41,15 @@ npm run build
 npm run start
 ```
 
+## Struktura
+
+Data se organizují do hierarchie **Zákazník → Poptávka → Díl**. Každý díl má
+vlastní sadu výše uvedených operací a výstupů. Katalog nástrojů (posuvy, řezné
+rychlosti, rozměry) je společný pro všechny díly — vybere se u kontury a
+příslušná pole se předvyplní.
+
 ## Data
 
-Zadané kontury se ukládají do `localStorage` prohlížeče (žádný backend/databáze).
+Vše se ukládá do `IndexedDB` v prohlížeči (žádný backend/databáze) — jen
+na tomto počítači. Starší data z `localStorage` se při prvním spuštění
+této verze automaticky přesunou do dílu „Nezařazeno / Migrovaná data / Díl 1“.

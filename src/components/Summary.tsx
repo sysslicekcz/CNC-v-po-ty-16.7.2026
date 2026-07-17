@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import { OPERATIONS } from "@/lib/operations";
-import { computeOperation } from "@/lib/results";
-import { useAllRows } from "@/lib/useAllRows";
+import { computeOperation, Row } from "@/lib/results";
+import { formatPartLabel } from "@/lib/entities";
 
 function formatMin(v: number) {
   return v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,18 +16,15 @@ function toHms(totalMin: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export default function Summary() {
-  const { hydrated, byId } = useAllRows();
+export interface SummaryPartInfo {
+  customerNazev: string;
+  inquiryNazev: string;
+  partCisloVykresu: string;
+  partNazev: string;
+}
 
-  const perOp = useMemo(() => {
-    if (!hydrated) return [];
-    return OPERATIONS.map((op) => ({
-      op,
-      result: computeOperation(op.id, byId[op.id] ?? []),
-    }));
-  }, [hydrated, byId]);
-
-  if (!hydrated) return null;
+export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]>; partInfo?: SummaryPartInfo }) {
+  const perOp = OPERATIONS.map((op) => ({ op, result: computeOperation(op.id, byId[op.id] ?? []) }));
 
   const opTotal = perOp
     .filter((p) => p.op.id !== "pripravneCasy")
@@ -42,7 +38,27 @@ export default function Summary() {
     <div className="space-y-6">
       {/* Signature: digital time-clock readout */}
       <div className="rounded-xl border border-accent-dim bg-surface p-6">
-        <div className="mb-4 text-xs uppercase tracking-[0.2em] text-muted">Celkový výrobní čas</div>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="text-xs uppercase tracking-[0.2em] text-muted">Celkový výrobní čas</div>
+          {partInfo && (
+            <div className="space-y-1 text-right text-sm">
+              <div>
+                <span className="text-xs text-muted">Zákazník: </span>
+                <span className="text-foreground">{partInfo.customerNazev}</span>
+              </div>
+              <div>
+                <span className="text-xs text-muted">Poptávka/Zakázka: </span>
+                <span className="text-foreground">{partInfo.inquiryNazev}</span>
+              </div>
+              <div>
+                <span className="text-xs text-muted">Díl: </span>
+                <span className="text-foreground">
+                  {formatPartLabel({ cisloVykresu: partInfo.partCisloVykresu, nazev: partInfo.partNazev })}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="font-mono text-5xl font-semibold text-accent tabular sm:text-6xl">
           {toHms(grandTotal)}
         </div>
