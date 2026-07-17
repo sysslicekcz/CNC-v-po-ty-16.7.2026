@@ -9,7 +9,7 @@ import { collectKonturaNames, nextKonturaNumber } from "@/lib/konturaNames";
 import DataTable from "./DataTable";
 import AddKonturaModal from "./AddKonturaModal";
 import ResultsPanel from "./ResultsPanel";
-import Summary from "./Summary";
+import Summary, { SummaryPartInfo } from "./Summary";
 import TabButton from "./TabButton";
 
 function OperationTab({
@@ -65,7 +65,7 @@ function OperationTab({
 // partId parametr useAllPartRows dostává od volajícího (CncApp PartRouter) id
 // POLOHY, ne id dílu - partOperationRows jsou uložené per poloha (viz entities.ts
 // ensureDefaultPosition, kde výchozí poloha schválně sdílí id s dílem).
-export default function PartWorkspace({ positionId }: { positionId: string }) {
+export default function PartWorkspace({ positionId, partInfo }: { positionId: string; partInfo: SummaryPartInfo }) {
   const [active, setActive] = useState<string>("summary");
   const { hydrated, byId, setById } = useAllPartRows(positionId);
   const { hydrated: toolsHydrated, byId: toolsById } = useAllTools();
@@ -86,7 +86,7 @@ export default function PartWorkspace({ positionId }: { positionId: string }) {
       </nav>
 
       {!hydrated || !toolsHydrated ? null : active === "summary" ? (
-        <Summary byId={byId} />
+        <Summary byId={byId} partInfo={partInfo} />
       ) : (
         <OperationTab
           id={active}

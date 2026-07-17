@@ -218,7 +218,15 @@ function PartRouter({
             </button>
           </div>
         )}
-        <PartWorkspace positionId={view.positionId} />
+        <PartWorkspace
+          positionId={view.positionId}
+          partInfo={{
+            customerNazev: view.customerNazev,
+            inquiryNazev: view.inquiryNazev,
+            partCisloVykresu: view.partCisloVykresu,
+            partNazev: view.partNazev,
+          }}
+        />
         {items.length === 1 && (
           <button
             onClick={onClearPosition}

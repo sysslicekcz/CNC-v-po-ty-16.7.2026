@@ -2,6 +2,7 @@
 
 import { OPERATIONS } from "@/lib/operations";
 import { computeOperation, Row } from "@/lib/results";
+import { formatPartLabel } from "@/lib/entities";
 
 function formatMin(v: number) {
   return v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -15,7 +16,14 @@ function toHms(totalMin: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export default function Summary({ byId }: { byId: Record<string, Row[]> }) {
+export interface SummaryPartInfo {
+  customerNazev: string;
+  inquiryNazev: string;
+  partCisloVykresu: string;
+  partNazev: string;
+}
+
+export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]>; partInfo?: SummaryPartInfo }) {
   const perOp = OPERATIONS.map((op) => ({ op, result: computeOperation(op.id, byId[op.id] ?? []) }));
 
   const opTotal = perOp
@@ -30,7 +38,17 @@ export default function Summary({ byId }: { byId: Record<string, Row[]> }) {
     <div className="space-y-6">
       {/* Signature: digital time-clock readout */}
       <div className="rounded-xl border border-accent-dim bg-surface p-6">
-        <div className="mb-4 text-xs uppercase tracking-[0.2em] text-muted">Celkový výrobní čas</div>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="text-xs uppercase tracking-[0.2em] text-muted">Celkový výrobní čas</div>
+          {partInfo && (
+            <div className="text-right text-sm text-muted">
+              <div className="text-foreground">{partInfo.customerNazev}</div>
+              <div>
+                {partInfo.inquiryNazev} · {formatPartLabel({ cisloVykresu: partInfo.partCisloVykresu, nazev: partInfo.partNazev })}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="font-mono text-5xl font-semibold text-accent tabular sm:text-6xl">
           {toHms(grandTotal)}
         </div>
