@@ -456,7 +456,7 @@ function MachineForm({
   onCancel,
 }: {
   initial?: Machine;
-  onSubmit: (fields: { nazev: string; maximalniOtacky: number; sazba?: number; operace: string[] }) => void;
+  onSubmit: (fields: { nazev: string; maximalniOtacky?: number; sazba?: number; operace: string[] }) => void;
   onCancel: () => void;
 }) {
   const [nazev, setNazev] = useState(initial?.nazev ?? "");
@@ -465,6 +465,7 @@ function MachineForm({
   );
   const [sazba, setSazba] = useState(initial?.sazba !== undefined ? String(initial.sazba) : "");
   const [operace, setOperace] = useState<string[]>(initial?.operace ?? MACHINE_OPERATIONS.map((o) => o.id));
+  const [error, setError] = useState<string | null>(null);
 
   const toggle = (id: string) => {
     setOperace((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -473,14 +474,29 @@ function MachineForm({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedNazev = nazev.trim();
-    const otackyNum = Number(maximalniOtacky);
-    if (!trimmedNazev || !Number.isFinite(otackyNum) || otackyNum <= 0) return;
+    if (!trimmedNazev) {
+      setError("Vyplň název stroje.");
+      return;
+    }
+    let otackyNum: number | undefined;
+    if (maximalniOtacky.trim() !== "") {
+      const n = Number(maximalniOtacky);
+      if (!Number.isFinite(n) || n <= 0) {
+        setError("Max. otáčky musí být kladné číslo (nebo pole nech prázdné).");
+        return;
+      }
+      otackyNum = n;
+    }
     let sazbaNum: number | undefined;
     if (sazba.trim() !== "") {
       const n = Number(sazba);
-      if (!Number.isFinite(n) || n < 0) return;
+      if (!Number.isFinite(n) || n < 0) {
+        setError("Sazba musí být nezáporné číslo (nebo pole nech prázdné).");
+        return;
+      }
       sazbaNum = n;
     }
+    setError(null);
     onSubmit({ nazev: trimmedNazev, maximalniOtacky: otackyNum, sazba: sazbaNum, operace });
   };
 
@@ -533,6 +549,7 @@ function MachineForm({
           })}
         </div>
       </div>
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
         <button type="submit" className={actionButtonClass()}>
           {initial ? "Uložit" : "+ Přidat stroj"}
