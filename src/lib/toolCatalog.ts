@@ -24,6 +24,8 @@ export const TOOL_CATALOG_COLUMNS: ColumnDef[] = [
   { key: "radius", label: "Radius špičky", unit: "mm", type: "number" },
   { key: "Vc", label: "Řezná rychlost (Vc)", unit: "m/min", type: "number" },
   { key: "f", label: "Posuv (f)", unit: "mm/ot", type: "number" },
+  { key: "z", label: "Počet zubů", type: "number" },
+  { key: "fz", label: "Posuv na zub (fz)", unit: "mm/zub", type: "number" },
   { key: "ap", label: "Hloubka řezu (ap)", unit: "mm", type: "number" },
   { key: "D", label: "Průměr nástroje", unit: "mm", type: "number" },
   { key: "sirka", label: "Šířka nástroje", unit: "mm", type: "number" },
@@ -51,7 +53,7 @@ export const NASTROJ_DRUHY: NastrojDruhDef[] = [
   { value: "soustruznickyNuz", label: "Soustružnický nůž", fields: ["radius", "Vc", "f", "ap"], showTyp: true },
   { value: "zapichovaciNuz", label: "Zapichovací/upichovací nůž", fields: ["Vc", "f", "sirka", "apMax"], showTyp: false },
   { value: "vrtak", label: "Vrták", fields: ["Vc", "f", "D"], showTyp: false },
-  { value: "freza", label: "Fréza", fields: ["f", "D", "apMax"], showTyp: false },
+  { value: "freza", label: "Fréza", fields: ["z", "fz", "f", "D", "apMax"], showTyp: false },
   { value: "brusnyKotouc", label: "Brusný kotouč", fields: ["Vc", "ap", "D", "sirka", "k"], showTyp: false },
   {
     value: "obecny",
