@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useCustomers, useInquiries, useParts, usePositions, formatPartLabel, Part, Position } from "@/lib/entities";
+import { useCustomers, useInquiries, useParts, usePositions, useMachines, formatPartLabel, Part, Position } from "@/lib/entities";
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
 import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
+import { checkAvailable } from "@/lib/db";
 import { TOOL_OPERATIONS, getToolColumns } from "@/lib/operations";
 import { useAllTools } from "@/lib/useAllTools";
 import { computePositionTotal } from "@/lib/positionTotal";
 import DataTable from "./DataTable";
 import AddKonturaModal from "./AddKonturaModal";
 import EntityList from "./EntityList";
-import PartList from "./PartList";
 import Breadcrumbs, { Crumb } from "./Breadcrumbs";
 import PartWorkspace from "./PartWorkspace";
 import BackupView from "./BackupView";
 import TabButton from "./TabButton";
+import UndoToast from "./UndoToast";
 
 type View =
   | { level: "home" }
@@ -33,6 +34,7 @@ type View =
       positionNazev?: string;
     }
   | { level: "nastroje" }
+  | { level: "stroje" }
   | { level: "zalohy" };
 
 function formatMin(v: number) {
@@ -41,6 +43,10 @@ function formatMin(v: number) {
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric" });
+}
+
+function formatKc(v: number) {
+  return v.toLocaleString("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
 }
 
 function labelForView(v: View): string {
@@ -118,7 +124,7 @@ function HomeView({
           title="Zákazníci"
           items={items}
           hydrated={hydrated}
-          onAdd={add}
+          onAdd={(f) => add(f.nazev)}
           onRemove={remove}
           onOpen={(c) => onOpenCustomer(c.id, c.nazev)}
           addPlaceholder="Název zákazníka"
@@ -143,7 +149,7 @@ function CustomerView({
       title="Poptávky/Zakázky"
       items={items}
       hydrated={hydrated}
-      onAdd={add}
+      onAdd={(f) => add(f.nazev)}
       onRemove={remove}
       onOpen={(i) => onOpenInquiry(i.id, i.nazev)}
       addPlaceholder="Název/číslo poptávky/zakázky"
@@ -162,7 +168,41 @@ function InquiryView({
   onOpenPart: (part: Part) => void;
 }) {
   const { items, hydrated, add, remove } = useParts(inquiryId);
-  return <PartList items={items} hydrated={hydrated} onAdd={add} onRemove={remove} onOpen={onOpenPart} />;
+  return (
+    <EntityList
+      title="Díly"
+      items={items}
+      hydrated={hydrated}
+      onAdd={(f) => add(f.cisloVykresu, f.nazev)}
+      onRemove={remove}
+      onOpen={onOpenPart}
+      addPlaceholder="Název dílu"
+      emptyMessage="Zatím žádné díly. Založ první níže."
+      deleteNoun="díl"
+      extraField={{ key: "cisloVykresu", label: "Číslo výkresu", position: "before" }}
+      renderLabel={(p) => (
+        <span>
+          {p.cisloVykresu ? (
+            <>
+              <span className="tabular text-accent">{p.cisloVykresu}</span>
+              <span className="text-muted"> · </span>
+            </>
+          ) : null}
+          <span className="text-foreground">{p.nazev}</span>
+        </span>
+      )}
+      renderExtra={(p) => `založeno ${formatDate(p.createdAt)}`}
+      filterPredicate={(p, q) =>
+        p.nazev.toLocaleLowerCase("cs").includes(q) || (p.cisloVykresu ?? "").toLocaleLowerCase("cs").includes(q)
+      }
+      confirmLabel={(p) => (p.cisloVykresu ? `${p.cisloVykresu} – ${p.nazev}` : p.nazev)}
+      sortOptions={[
+        { label: "Nejnovější" },
+        { label: "Číslo výkresu", compare: (a, b) => (a.cisloVykresu ?? "").localeCompare(b.cisloVykresu ?? "", "cs", { numeric: true }) },
+        { label: "Název", compare: (a, b) => a.nazev.localeCompare(b.nazev, "cs") },
+      ]}
+    />
+  );
 }
 
 // Naprostá většina dílů má jedinou polohu (upnutí) - tu si appka najde/založí sama
@@ -177,7 +217,8 @@ function PartRouter({
   onOpenPosition: (position: Position) => void;
   onClearPosition: () => void;
 }) {
-  const { items, hydrated, add, remove } = usePositions(view.partId);
+  const { items, hydrated, add, remove, setStroj } = usePositions(view.partId);
+  const { items: machines, hydrated: machinesHydrated } = useMachines();
   const [totals, setTotals] = useState<Record<string, number>>({});
   // Auto-výběr jediné polohy smí proběhnout jen jednou za život komponenty (=za
   // jeden vstup do dílu) - jinak by kliknutí na "spravovat polohy"/"+ Přidat polohu"
@@ -202,9 +243,10 @@ function PartRouter({
     }
   }, [hydrated, items, view.positionId, onOpenPosition]);
 
-  if (!hydrated) return null;
+  if (!hydrated || !machinesHydrated) return null;
 
   if (view.positionId) {
+    const position = items.find((p) => p.id === view.positionId);
     return (
       <div>
         {items.length > 1 && (
@@ -231,6 +273,9 @@ function PartRouter({
             partCisloVykresu: view.partCisloVykresu,
             partNazev: view.partNazev,
           }}
+          machines={machines}
+          strojId={position?.strojId}
+          onSetStroj={(strojId) => setStroj(view.positionId!, strojId)}
         />
         {items.length === 1 && (
           <button
@@ -245,6 +290,12 @@ function PartRouter({
   }
 
   const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+  const grandCost = items.reduce((sum, p) => {
+    const sazba = machines.find((m) => m.id === p.strojId)?.sazba;
+    const time = totals[p.id];
+    return sazba !== undefined && time !== undefined ? sum + (time / 60) * sazba : sum;
+  }, 0);
+  const anyStrojAssigned = items.some((p) => p.strojId);
 
   return (
     <div className="space-y-4">
@@ -252,13 +303,19 @@ function PartRouter({
         <div className="rounded-lg border border-accent-dim bg-surface p-4 text-sm">
           <span className="text-muted">Celkem za díl: </span>
           <span className="tabular text-accent">{formatMin(grandTotal)} min</span>
+          {anyStrojAssigned && (
+            <>
+              <span className="text-muted"> · </span>
+              <span className="tabular text-accent">{formatKc(grandCost)}</span>
+            </>
+          )}
         </div>
       )}
       <EntityList
         title="Polohy"
         items={items}
         hydrated={hydrated}
-        onAdd={add}
+        onAdd={(f) => add(f.nazev)}
         onRemove={remove}
         onOpen={onOpenPosition}
         addPlaceholder={`Název polohy (např. Poloha ${items.length + 1})`}
@@ -328,8 +385,35 @@ function ToolsView({
   );
 }
 
+function StrojeView() {
+  const { items, hydrated, add, remove } = useMachines();
+  return (
+    <div>
+      <h2 className="mb-3 text-lg font-medium">Stroje</h2>
+      <p className="mb-4 max-w-2xl text-sm text-muted">
+        Založ stroje s jejich hodinovou sazbou. U poloh dílů pak půjde vybrat, na kterém stroji se
+        dělaly, a appka k výrobnímu času dopočítá cenu.
+      </p>
+      <EntityList
+        title="Seznam strojů"
+        items={items}
+        hydrated={hydrated}
+        onAdd={(f) => add(f.nazev, Number(f.sazba))}
+        onRemove={remove}
+        onOpen={() => {}}
+        addPlaceholder="Název stroje"
+        emptyMessage="Zatím žádné stroje. Založ první tlačítkem níže."
+        deleteNoun="stroj"
+        extraField={{ key: "sazba", label: "Sazba Kč/hod", type: "number" }}
+        renderExtra={(m) => formatKc(m.sazba) + "/hod"}
+      />
+    </div>
+  );
+}
+
 export default function CncApp() {
   const [migrated, setMigrated] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
   const [view, setView] = useState<View>({ level: "home" });
   const [toolsActive, setToolsActive] = useState<string>(TOOL_OPERATIONS[0].id);
   // Poslední navštívené místo mimo Nástroje/Zálohy - umožňuje se odtamtud vrátit
@@ -338,23 +422,46 @@ export default function CncApp() {
   // stav navázaný na změnu jiného stavu.
   const [prevView, setPrevView] = useState(view);
   const [lastLocation, setLastLocation] = useState<View>({ level: "home" });
+  const isUtilityLevel = (l: View["level"]) => l === "nastroje" || l === "stroje" || l === "zalohy";
+
   if (prevView !== view) {
     setPrevView(view);
-    if (view.level !== "nastroje" && view.level !== "zalohy") setLastLocation(view);
+    if (!isUtilityLevel(view.level)) setLastLocation(view);
   }
 
   useEffect(() => {
+    // Odděleně od migrace (ta chyby polyká, aby appka naběhla i při jejím
+    // selhání) - tady chceme selhání IndexedDB naopak zachytit a ukázat.
+    checkAvailable().catch((err) =>
+      setDbError(err instanceof Error ? err.message : "Úložiště dat se nepodařilo otevřít.")
+    );
     migrateLegacyDataIfNeeded().then(() => setMigrated(true));
   }, []);
+
+  if (dbError) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 sm:px-6 lg:px-8">
+        <h1 className="mb-3 font-mono text-xl font-semibold text-danger">Úložiště dat je nedostupné</h1>
+        <p className="mb-2 text-sm text-muted">
+          CNC Časovač ukládá data do IndexedDB v tomto prohlížeči, ale nepodařilo se ji otevřít:
+        </p>
+        <p className="mb-4 rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{dbError}</p>
+        <p className="text-sm text-muted">
+          Nejčastější příčina je soukromé/anonymní prohlížení nebo zákaz IndexedDB firemní politikou
+          prohlížeče. Zkus appku otevřít v běžném (ne anonymním) okně, případně v jiném prohlížeči.
+        </p>
+      </div>
+    );
+  }
 
   let crumbs: Crumb[] = [];
   let current: string | undefined;
 
-  if (view.level === "nastroje" || view.level === "zalohy") {
+  if (isUtilityLevel(view.level)) {
     if (lastLocation.level !== "home") {
       crumbs = [{ label: `← ${labelForView(lastLocation)}`, onClick: () => setView(lastLocation) }];
     }
-    current = view.level === "nastroje" ? "Nástroje" : "Zálohy";
+    current = view.level === "nastroje" ? "Nástroje" : view.level === "stroje" ? "Stroje" : "Zálohy";
   } else if (view.level === "customer") {
     crumbs = [{ label: "Domů", onClick: () => setView({ level: "home" }) }];
     current = view.customerNazev;
@@ -421,14 +528,14 @@ export default function CncApp() {
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <nav className="flex flex-wrap gap-1.5">
-          <TabButton
-            active={view.level !== "nastroje" && view.level !== "zalohy"}
-            onClick={() => setView({ level: "home" })}
-          >
+          <TabButton active={!isUtilityLevel(view.level)} onClick={() => setView({ level: "home" })}>
             Domů
           </TabButton>
           <TabButton active={view.level === "nastroje"} onClick={() => setView({ level: "nastroje" })}>
             Nástroje
+          </TabButton>
+          <TabButton active={view.level === "stroje"} onClick={() => setView({ level: "stroje" })}>
+            Stroje
           </TabButton>
           <TabButton active={view.level === "zalohy"} onClick={() => setView({ level: "zalohy" })}>
             Zálohy
@@ -491,10 +598,13 @@ export default function CncApp() {
           />
         ) : view.level === "nastroje" ? (
           <ToolsView toolsActive={toolsActive} setToolsActive={setToolsActive} />
+        ) : view.level === "stroje" ? (
+          <StrojeView />
         ) : (
           <BackupView />
         )}
       </main>
+      <UndoToast />
     </div>
   );
 }

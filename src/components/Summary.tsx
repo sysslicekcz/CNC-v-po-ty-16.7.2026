@@ -8,6 +8,10 @@ function formatMin(v: number) {
   return v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatKc(v: number) {
+  return v.toLocaleString("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
+}
+
 function toHms(totalMin: number) {
   const totalSec = Math.round(totalMin * 60);
   const h = Math.floor(totalSec / 3600);
@@ -23,7 +27,16 @@ export interface SummaryPartInfo {
   partNazev: string;
 }
 
-export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]>; partInfo?: SummaryPartInfo }) {
+export default function Summary({
+  byId,
+  partInfo,
+  sazba,
+}: {
+  byId: Record<string, Row[]>;
+  partInfo?: SummaryPartInfo;
+  /** Hodinová sazba stroje přiřazeného k této poloze (Kč/hod) - když je zadaná, dopočte se cena. */
+  sazba?: number;
+}) {
   const perOp = OPERATIONS.map((op) => ({ op, result: computeOperation(op.id, byId[op.id] ?? []) }));
 
   const opTotal = perOp
@@ -31,11 +44,20 @@ export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]
     .reduce((sum, p) => sum + p.result.total, 0);
   const prepTotal = perOp.find((p) => p.op.id === "pripravneCasy")?.result.total ?? 0;
   const grandTotal = opTotal + prepTotal;
+  const cena = sazba !== undefined ? (grandTotal / 60) * sazba : undefined;
 
   const withData = perOp.filter((p) => p.result.rows.length > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="print-area space-y-6">
+      <div className="flex justify-end print:hidden">
+        <button
+          onClick={() => window.print()}
+          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
+        >
+          Tisk / PDF
+        </button>
+      </div>
       {/* Signature: digital time-clock readout */}
       <div className="rounded-xl border border-accent-dim bg-surface p-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -62,7 +84,7 @@ export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]
         <div className="font-mono text-5xl font-semibold text-accent tabular sm:text-6xl">
           {toHms(grandTotal)}
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-4 text-sm">
+        <div className={"mt-4 grid gap-4 border-t border-border pt-4 text-sm " + (cena !== undefined ? "grid-cols-4" : "grid-cols-3")}>
           <div>
             <div className="text-muted">Operace</div>
             <div className="tabular text-lg">{formatMin(opTotal)} min</div>
@@ -75,6 +97,12 @@ export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]
             <div className="text-muted">Celkem</div>
             <div className="tabular text-lg text-accent">{formatMin(grandTotal)} min</div>
           </div>
+          {cena !== undefined && (
+            <div>
+              <div className="text-muted">Cena</div>
+              <div className="tabular text-lg text-accent">{formatKc(cena)}</div>
+            </div>
+          )}
         </div>
       </div>
 

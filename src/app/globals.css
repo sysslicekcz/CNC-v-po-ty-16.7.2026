@@ -52,3 +52,26 @@ input[type="number"]::-webkit-outer-spin-button {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Tisk protokolu dílu (Summary) - schová vše kolem .print-area a přebarví
+   na černobílý tisk, ať appka nepálí celou stránku tmavým podkladem. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    color: #000;
+  }
+  .print-area * {
+    background: transparent !important;
+    color: #000 !important;
+    border-color: #999 !important;
+  }
+}

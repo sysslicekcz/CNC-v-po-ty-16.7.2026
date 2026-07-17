@@ -2,7 +2,7 @@
 // (po mountu, uvnitř useEffect), takže "indexedDB" tu nikdy nesahá na SSR.
 
 const DB_NAME = "cnc-casovac";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export type StoreName =
   | "customers"
@@ -11,6 +11,7 @@ export type StoreName =
   | "positions"
   | "partOperationRows"
   | "toolRows"
+  | "machines"
   | "meta";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -18,6 +19,10 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 function openDb(): Promise<IDBDatabase> {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
+      if (typeof indexedDB === "undefined") {
+        reject(new Error("IndexedDB není v tomto prohlížeči k dispozici."));
+        return;
+      }
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -41,6 +46,9 @@ function openDb(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains("toolRows")) {
           db.createObjectStore("toolRows", { keyPath: "opId" });
+        }
+        if (!db.objectStoreNames.contains("machines")) {
+          db.createObjectStore("machines", { keyPath: "id" });
         }
         if (!db.objectStoreNames.contains("meta")) {
           db.createObjectStore("meta", { keyPath: "key" });
@@ -88,4 +96,11 @@ export async function del(store: StoreName, key: IDBValidKey): Promise<void> {
 export async function clearStore(store: StoreName): Promise<void> {
   const db = await openDb();
   await wrap(db.transaction(store, "readwrite").objectStore(store).clear());
+}
+
+/** Ověří, že jde úložiště otevřít - volá se samostatně (mimo migraci, která chyby
+ *  polyká), aby appka na selhání IndexedDB (soukromý režim, zákaz firemní politikou,
+ *  plný disk...) reagovala srozumitelnou hláškou místo tichého prázdna. */
+export async function checkAvailable(): Promise<void> {
+  await openDb();
 }
