@@ -62,9 +62,12 @@ function OperationTab({
   );
 }
 
-export default function PartWorkspace({ partId }: { partId: string }) {
+// partId parametr useAllPartRows dostává od volajícího (CncApp PartRouter) id
+// POLOHY, ne id dílu - partOperationRows jsou uložené per poloha (viz entities.ts
+// ensureDefaultPosition, kde výchozí poloha schválně sdílí id s dílem).
+export default function PartWorkspace({ positionId }: { positionId: string }) {
   const [active, setActive] = useState<string>("summary");
-  const { hydrated, byId, setById } = useAllPartRows(partId);
+  const { hydrated, byId, setById } = useAllPartRows(positionId);
   const { hydrated: toolsHydrated, byId: toolsById } = useAllTools();
   const konturaOptions = useMemo(() => collectKonturaNames(byId), [byId]);
   const autoKontura = useMemo(() => nextKonturaNumber(byId), [byId]);

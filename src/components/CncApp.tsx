@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useCustomers, useInquiries, useParts, formatPartLabel, Part } from "@/lib/entities";
+import { useEffect, useRef, useState } from "react";
+import { useCustomers, useInquiries, useParts, usePositions, formatPartLabel, Part, Position } from "@/lib/entities";
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
 import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
 import { TOOL_OPERATIONS, getToolColumns } from "@/lib/operations";
 import { useAllTools } from "@/lib/useAllTools";
+import { computePositionTotal } from "@/lib/positionTotal";
 import DataTable from "./DataTable";
 import AddKonturaModal from "./AddKonturaModal";
 import EntityList from "./EntityList";
@@ -28,9 +29,15 @@ type View =
       partId: string;
       partCisloVykresu: string;
       partNazev: string;
+      positionId?: string;
+      positionNazev?: string;
     }
   | { level: "nastroje" }
   | { level: "zalohy" };
+
+function formatMin(v: number) {
+  return v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 function labelForView(v: View): string {
   switch (v.level) {
@@ -153,6 +160,104 @@ function InquiryView({
   return <PartList items={items} hydrated={hydrated} onAdd={add} onRemove={remove} onOpen={onOpenPart} />;
 }
 
+// Naprostá většina dílů má jedinou polohu (upnutí) - tu si appka najde/založí sama
+// a rovnou otevře pracovní prostor, žádný výběr navíc. "Poloha" se v UI objeví,
+// až jich je víc (nebo si uživatel druhou vyžádá tlačítkem "+ Přidat polohu").
+function PartRouter({
+  view,
+  onOpenPosition,
+  onClearPosition,
+}: {
+  view: Extract<View, { level: "part" }>;
+  onOpenPosition: (position: Position) => void;
+  onClearPosition: () => void;
+}) {
+  const { items, hydrated, add, remove } = usePositions(view.partId);
+  const [totals, setTotals] = useState<Record<string, number>>({});
+  // Auto-výběr jediné polohy smí proběhnout jen jednou za život komponenty (=za
+  // jeden vstup do dílu) - jinak by kliknutí na "spravovat polohy"/"+ Přidat polohu"
+  // (které positionId ve view vyčistí) hned zase skočilo zpátky do té samé polohy.
+  const autoSelected = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated || items.length <= 1) return;
+    let cancelled = false;
+    Promise.all(items.map(async (p) => [p.id, await computePositionTotal(p.id)] as const)).then((pairs) => {
+      if (!cancelled) setTotals(Object.fromEntries(pairs));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, items]);
+
+  useEffect(() => {
+    if (hydrated && items.length === 1 && !view.positionId && !autoSelected.current) {
+      autoSelected.current = true;
+      onOpenPosition(items[0]);
+    }
+  }, [hydrated, items, view.positionId, onOpenPosition]);
+
+  if (!hydrated) return null;
+
+  if (view.positionId) {
+    return (
+      <div>
+        {items.length > 1 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <span className="text-sm text-muted">Poloha:</span>
+            {items.map((p) => (
+              <TabButton key={p.id} active={p.id === view.positionId} onClick={() => onOpenPosition(p)}>
+                {p.nazev}
+              </TabButton>
+            ))}
+            <button
+              onClick={onClearPosition}
+              className="ml-1 text-sm text-muted underline decoration-dotted hover:text-accent"
+            >
+              spravovat polohy
+            </button>
+          </div>
+        )}
+        <PartWorkspace positionId={view.positionId} />
+        {items.length === 1 && (
+          <button
+            onClick={onClearPosition}
+            className="mt-4 text-sm text-muted underline decoration-dotted hover:text-accent"
+          >
+            + Přidat polohu
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+
+  return (
+    <div className="space-y-4">
+      {items.length > 1 && (
+        <div className="rounded-lg border border-accent-dim bg-surface p-4 text-sm">
+          <span className="text-muted">Celkem za díl: </span>
+          <span className="tabular text-accent">{formatMin(grandTotal)} min</span>
+        </div>
+      )}
+      <EntityList
+        title="Polohy"
+        items={items}
+        hydrated={hydrated}
+        onAdd={add}
+        onRemove={remove}
+        onOpen={onOpenPosition}
+        addPlaceholder={`Název polohy (např. Poloha ${items.length + 1})`}
+        emptyMessage="Zatím žádné polohy."
+        deleteNoun="polohu"
+        renderExtra={(p) => (totals[p.id] !== undefined ? `${formatMin(totals[p.id])} min` : "")}
+        canRemove={() => items.length > 1}
+      />
+    </div>
+  );
+}
+
 function ToolsView({
   toolsActive,
   setToolsActive,
@@ -268,7 +373,13 @@ export default function CncApp() {
           }),
       },
     ];
-    current = formatPartLabel({ cisloVykresu: view.partCisloVykresu, nazev: view.partNazev });
+    const partLabel = formatPartLabel({ cisloVykresu: view.partCisloVykresu, nazev: view.partNazev });
+    if (view.positionNazev) {
+      crumbs.push({ label: partLabel, onClick: () => setView({ ...view, positionId: undefined, positionNazev: undefined }) });
+      current = view.positionNazev;
+    } else {
+      current = partLabel;
+    }
   }
 
   const isHome = view.level === "home";
@@ -360,7 +471,11 @@ export default function CncApp() {
             }
           />
         ) : view.level === "part" ? (
-          <PartWorkspace partId={view.partId} />
+          <PartRouter
+            view={view}
+            onOpenPosition={(p) => setView({ ...view, positionId: p.id, positionNazev: p.nazev })}
+            onClearPosition={() => setView({ ...view, positionId: undefined, positionNazev: undefined })}
+          />
         ) : view.level === "nastroje" ? (
           <ToolsView toolsActive={toolsActive} setToolsActive={setToolsActive} />
         ) : (

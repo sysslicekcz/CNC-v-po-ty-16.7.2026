@@ -17,6 +17,8 @@ export default function EntityList<T extends EntityItem>({
   addPlaceholder,
   emptyMessage,
   deleteNoun,
+  renderExtra,
+  canRemove,
 }: {
   title: string;
   items: T[];
@@ -27,6 +29,10 @@ export default function EntityList<T extends EntityItem>({
   addPlaceholder: string;
   emptyMessage: string;
   deleteNoun: string;
+  /** Volitelný extra obsah za názvem položky (např. dopočítaný čas). */
+  renderExtra?: (item: T) => React.ReactNode;
+  /** Volitelně skryje tlačítko smazat u položek, které nejde smazat (výchozí: vždy lze). */
+  canRemove?: (item: T) => boolean;
 }) {
   const [filter, setFilter] = useState("");
   const [newName, setNewName] = useState("");
@@ -70,16 +76,19 @@ export default function EntityList<T extends EntityItem>({
           <ul className="divide-y divide-border/60">
             {filtered.map((item) => (
               <li key={item.id} className="flex items-center justify-between px-4 py-2 hover:bg-surface-raised/50">
-                <button onClick={() => onOpen(item)} className="flex-1 text-left text-sm text-foreground">
-                  {item.nazev}
+                <button onClick={() => onOpen(item)} className="flex flex-1 items-center justify-between text-left text-sm text-foreground">
+                  <span>{item.nazev}</span>
+                  {renderExtra && <span className="tabular text-muted">{renderExtra(item)}</span>}
                 </button>
-                <button
-                  onClick={() => remove(item)}
-                  aria-label="Smazat"
-                  className="text-muted transition hover:text-danger"
-                >
-                  ✕
-                </button>
+                {(!canRemove || canRemove(item)) && (
+                  <button
+                    onClick={() => remove(item)}
+                    aria-label="Smazat"
+                    className="ml-3 text-muted transition hover:text-danger"
+                  >
+                    ✕
+                  </button>
+                )}
               </li>
             ))}
           </ul>

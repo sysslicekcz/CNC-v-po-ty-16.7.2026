@@ -2,12 +2,13 @@
 // (po mountu, uvnitř useEffect), takže "indexedDB" tu nikdy nesahá na SSR.
 
 const DB_NAME = "cnc-casovac";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export type StoreName =
   | "customers"
   | "inquiries"
   | "parts"
+  | "positions"
   | "partOperationRows"
   | "toolRows"
   | "meta";
@@ -28,6 +29,12 @@ function openDb(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains("parts")) {
           db.createObjectStore("parts", { keyPath: "id" }).createIndex("inquiryId", "inquiryId");
+        }
+        if (!db.objectStoreNames.contains("positions")) {
+          // Výchozí poloha dílu má schválně id === id dílu (viz entities.ts
+          // ensureDefaultPosition) - díky tomu staré partOperationRows uložené
+          // pod partId dílu automaticky "patří" této poloze bez jakékoli migrace dat.
+          db.createObjectStore("positions", { keyPath: "id" }).createIndex("partId", "partId");
         }
         if (!db.objectStoreNames.contains("partOperationRows")) {
           db.createObjectStore("partOperationRows", { keyPath: "id" }).createIndex("partId", "partId");
