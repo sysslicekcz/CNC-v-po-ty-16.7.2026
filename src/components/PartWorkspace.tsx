@@ -71,7 +71,7 @@ export default function PartWorkspace({ partId }: { partId: string }) {
 
   return (
     <div>
-      <nav className="mb-6 flex flex-wrap gap-1.5 border-b border-border pb-4">
+      <nav className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-3">
         <TabButton active={active === "summary"} onClick={() => setActive("summary")}>
           Výstupy
         </TabButton>

@@ -268,38 +268,47 @@ export default function CncApp() {
     current = formatPartLabel({ cisloVykresu: view.partCisloVykresu, nazev: view.partNazev });
   }
 
+  const isHome = view.level === "home";
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-1 border-b border-border pb-6">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-accent">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Dílenský výpočet časů
-        </div>
-        <h1 className="font-mono text-2xl font-semibold tracking-tight sm:text-3xl">
-          CNC Časovač
-        </h1>
-        <p className="max-w-2xl text-sm text-muted">
-          Přepočet strojních časů z řezných podmínek — soustružení, vrtání, zápichy, frézování
-          drážek a broušení. Data se ukládají v prohlížeči.
-        </p>
-      </header>
+      {isHome ? (
+        <header className="mb-8 flex flex-col gap-1 border-b border-border pb-6">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-accent">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            Dílenský výpočet časů
+          </div>
+          <h1 className="font-mono text-2xl font-semibold tracking-tight sm:text-3xl">
+            CNC Časovač
+          </h1>
+          <p className="max-w-2xl text-sm text-muted">
+            Přepočet strojních časů z řezných podmínek — soustružení, vrtání, zápichy, frézování
+            drážek a broušení. Data se ukládají v prohlížeči.
+          </p>
+        </header>
+      ) : (
+        <header className="mb-4 flex items-center justify-between border-b border-border pb-3">
+          <h1 className="font-mono text-base font-semibold tracking-tight text-muted">CNC Časovač</h1>
+        </header>
+      )}
 
-      <nav className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-4">
-        <TabButton
-          active={view.level !== "nastroje" && view.level !== "zalohy"}
-          onClick={() => setView({ level: "home" })}
-        >
-          Domů
-        </TabButton>
-        <TabButton active={view.level === "nastroje"} onClick={() => setView({ level: "nastroje" })}>
-          Nástroje
-        </TabButton>
-        <TabButton active={view.level === "zalohy"} onClick={() => setView({ level: "zalohy" })}>
-          Zálohy
-        </TabButton>
-      </nav>
-
-      <Breadcrumbs items={crumbs} current={current} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <nav className="flex flex-wrap gap-1.5">
+          <TabButton
+            active={view.level !== "nastroje" && view.level !== "zalohy"}
+            onClick={() => setView({ level: "home" })}
+          >
+            Domů
+          </TabButton>
+          <TabButton active={view.level === "nastroje"} onClick={() => setView({ level: "nastroje" })}>
+            Nástroje
+          </TabButton>
+          <TabButton active={view.level === "zalohy"} onClick={() => setView({ level: "zalohy" })}>
+            Zálohy
+          </TabButton>
+        </nav>
+        <Breadcrumbs items={crumbs} current={current} />
+      </div>
 
       <main>
         {!migrated ? null : view.level === "home" ? (

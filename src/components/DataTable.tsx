@@ -52,8 +52,8 @@ export default function DataTable({
             <tr className="bg-surface-raised text-left">
               {columns.map((c) => (
                 <th key={c.key} className="whitespace-nowrap border-b border-border px-3 py-2 font-medium text-muted">
-                  {c.label}
-                  {c.unit ? <span className="ml-1 text-muted/70">[{c.unit}]</span> : null}
+                  <div>{c.label}</div>
+                  {c.unit ? <div className="font-normal text-muted/70">[{c.unit}]</div> : null}
                 </th>
               ))}
               <th className="w-10 border-b border-border" />
