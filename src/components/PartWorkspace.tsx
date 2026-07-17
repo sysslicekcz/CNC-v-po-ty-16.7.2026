@@ -6,6 +6,7 @@ import { computeOperation, Row } from "@/lib/results";
 import { useAllPartRows } from "@/lib/usePartRows";
 import { useAllTools } from "@/lib/useAllTools";
 import { useUndoableRows } from "@/lib/useUndoableRows";
+import { actionButtonClass } from "@/lib/actionButtonClass";
 import { collectKonturaNames, nextKonturaNumber } from "@/lib/konturaNames";
 import { Machine } from "@/lib/entities";
 import DataTable from "./DataTable";
@@ -13,17 +14,6 @@ import AddKonturaModal from "./AddKonturaModal";
 import ResultsPanel from "./ResultsPanel";
 import Summary, { SummaryPartInfo } from "./Summary";
 import TabButton from "./TabButton";
-
-// Sjednocené umístění akčních tlačítek nad tabulkou (přidat/krok zpět/smazat
-// vše) - stejný styl a zarovnání vlevo jako "+ Přidat nástroj" v Nástrojích.
-export function actionButtonClass(disabled = false): string {
-  return (
-    "rounded-md border px-3 py-1.5 text-sm transition " +
-    (disabled
-      ? "cursor-not-allowed border-border/50 text-muted/50"
-      : "border-border text-foreground hover:border-accent hover:text-accent")
-  );
-}
 
 function OperationTab({
   id,
@@ -88,12 +78,16 @@ export default function PartWorkspace({
   machines,
   strojId,
   onSetStroj,
+  onAddPosition,
 }: {
   positionId: string;
   partInfo: SummaryPartInfo;
   machines: Machine[];
   strojId: string | undefined;
   onSetStroj: (strojId: string | undefined) => void;
+  /** Díl má jedinou polohu - na Výstupech (vedle Tisk/PDF) se nabídne rychlé
+   *  přidání druhé. U víc poloh appka místo toho ukazuje výběr polohy (viz PartRouter). */
+  onAddPosition?: () => void;
 }) {
   const [active, setActive] = useState<string>("summary");
   const { hydrated, byId, setById } = useAllPartRows(positionId);
@@ -145,7 +139,7 @@ export default function PartWorkspace({
       </nav>
 
       {!hydrated || !toolsHydrated ? null : effectiveActive === "summary" ? (
-        <Summary byId={byId} partInfo={partInfo} sazba={sazba} />
+        <Summary byId={byId} partInfo={partInfo} sazba={sazba} onAddPosition={onAddPosition} />
       ) : (
         <OperationTab
           key={effectiveActive}

@@ -3,6 +3,7 @@
 import { OPERATIONS } from "@/lib/operations";
 import { computeOperation, Row } from "@/lib/results";
 import { formatPartLabel } from "@/lib/entities";
+import { actionButtonClass } from "@/lib/actionButtonClass";
 
 function formatMin(v: number) {
   return v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,11 +32,14 @@ export default function Summary({
   byId,
   partInfo,
   sazba,
+  onAddPosition,
 }: {
   byId: Record<string, Row[]>;
   partInfo?: SummaryPartInfo;
   /** Hodinová sazba stroje přiřazeného k této poloze (Kč/hod) - když je zadaná, dopočte se cena. */
   sazba?: number;
+  /** Díl má jedinou polohu - nabídne rychlé přidání druhé vedle Tisk/PDF. */
+  onAddPosition?: () => void;
 }) {
   const perOp = OPERATIONS.map((op) => ({ op, result: computeOperation(op.id, byId[op.id] ?? []) }));
 
@@ -50,13 +54,15 @@ export default function Summary({
 
   return (
     <div className="print-area space-y-6">
-      <div className="flex justify-end print:hidden">
-        <button
-          onClick={() => window.print()}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
-        >
+      <div className="flex flex-wrap gap-2 print:hidden">
+        <button onClick={() => window.print()} className={actionButtonClass()}>
           Tisk / PDF
         </button>
+        {onAddPosition && (
+          <button onClick={onAddPosition} className={actionButtonClass()}>
+            + Přidat polohu
+          </button>
+        )}
       </div>
       {/* Signature: digital time-clock readout */}
       <div className="rounded-xl border border-accent-dim bg-surface p-6">

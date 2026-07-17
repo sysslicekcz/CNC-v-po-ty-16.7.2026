@@ -21,7 +21,8 @@ import DataTable from "./DataTable";
 import AddKonturaModal from "./AddKonturaModal";
 import EntityList from "./EntityList";
 import Breadcrumbs, { Crumb } from "./Breadcrumbs";
-import PartWorkspace, { actionButtonClass } from "./PartWorkspace";
+import PartWorkspace from "./PartWorkspace";
+import { actionButtonClass } from "@/lib/actionButtonClass";
 import BackupView from "./BackupView";
 import TabButton from "./TabButton";
 import UndoToast from "./UndoToast";
@@ -285,12 +286,8 @@ function PartRouter({
           machines={machines}
           strojId={position?.strojId}
           onSetStroj={(strojId) => setStroj(view.positionId!, strojId)}
+          onAddPosition={items.length === 1 ? onClearPosition : undefined}
         />
-        {items.length === 1 && (
-          <button onClick={onClearPosition} className={"mt-4 " + actionButtonClass()}>
-            + Přidat polohu
-          </button>
-        )}
       </div>
     );
   }
