@@ -36,9 +36,11 @@ export default function EntityList<T extends EntityItem>({
 }) {
   const [filter, setFilter] = useState("");
   const [newName, setNewName] = useState("");
+  const [sortAz, setSortAz] = useState(false);
 
   const q = filter.trim().toLocaleLowerCase("cs");
   const filtered = q ? items.filter((i) => i.nazev.toLocaleLowerCase("cs").includes(q)) : items;
+  const sorted = sortAz ? [...filtered].sort((a, b) => a.nazev.localeCompare(b.nazev, "cs")) : filtered;
 
   const submitAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,21 +62,32 @@ export default function EntityList<T extends EntityItem>({
       <h2 className="text-lg font-medium">{title}</h2>
 
       {items.length > 3 && (
-        <input
-          type="text"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filtrovat…"
-          className="w-full max-w-sm rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filtrovat…"
+            className="w-full max-w-sm rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
+          />
+          <button
+            type="button"
+            onClick={() => setSortAz((v) => !v)}
+            className="rounded-md border border-border px-3 py-1.5 text-sm text-muted transition hover:border-accent hover:text-accent"
+          >
+            Řazení: {sortAz ? "A-Z" : "Nejnovější"}
+          </button>
+        </div>
       )}
 
       <div className="overflow-hidden rounded-lg border border-border">
-        {filtered.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted">{emptyMessage}</div>
+        {sorted.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted">
+            {items.length === 0 ? emptyMessage : "Filtru neodpovídá žádná položka."}
+          </div>
         ) : (
           <ul className="divide-y divide-border/60">
-            {filtered.map((item) => (
+            {sorted.map((item) => (
               <li key={item.id} className="flex items-center justify-between px-4 py-2 hover:bg-surface-raised/50">
                 <button onClick={() => onOpen(item)} className="flex flex-1 items-center justify-between text-left text-sm text-foreground">
                   <span>{item.nazev}</span>

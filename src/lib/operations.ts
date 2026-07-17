@@ -155,17 +155,19 @@ export const OPERATIONS: OperationConfig[] = [
   },
 ];
 
-/** Operace, které mají alespoň jedno pole odvoditelné z katalogu nástrojů
- *  (přípravné časy žádné takové pole nemají, takže tam katalog nemá smysl). */
+/** Operace, které mají alespoň jedno pole odvoditelné z katalogu (nástroje pro
+ *  obrábění, nebo u přípravných časů šablony úkonů). */
 export const TOOL_OPERATIONS: OperationConfig[] = OPERATIONS.filter((op) =>
   op.columns.some((c) => c.fromTool)
 );
 
-/** Sloupce katalogu nástrojů pro danou operaci: vlastní název nástroje +
- *  parametry, které operace označuje jako "fromTool". */
+/** Sloupce katalogu pro danou operaci: vlastní název položky katalogu (nástroje,
+ *  nebo u přípravných časů šablony) + parametry, které operace označuje jako
+ *  "fromTool". */
 export function getToolColumns(op: OperationConfig): ColumnDef[] {
+  const nazevLabel = op.id === "pripravneCasy" ? "Název šablony" : "Název nástroje";
   return [
-    { key: "nazev", label: "Název nástroje", type: "text" },
+    { key: "nazev", label: nazevLabel, type: "text" },
     ...op.columns.filter((c) => c.fromTool),
   ];
 }
