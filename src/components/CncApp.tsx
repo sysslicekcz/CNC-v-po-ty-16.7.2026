@@ -39,6 +39,10 @@ function formatMin(v: number) {
   return v.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric" });
+}
+
 function labelForView(v: View): string {
   switch (v.level) {
     case "customer":
@@ -145,6 +149,7 @@ function CustomerView({
       addPlaceholder="Název/číslo poptávky/zakázky"
       emptyMessage="Zatím žádné poptávky/zakázky. Založ první tlačítkem níže."
       deleteNoun="poptávku/zakázku"
+      renderExtra={(i) => `založeno ${formatDate(i.createdAt)}`}
     />
   );
 }
