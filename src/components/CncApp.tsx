@@ -13,6 +13,7 @@ import { computePositionTotal } from "@/lib/positionTotal";
 import { Row } from "@/lib/results";
 import DataTable from "./DataTable";
 import AddKonturaModal from "./AddKonturaModal";
+import AddToolModal from "./AddToolModal";
 import EntityList from "./EntityList";
 import Breadcrumbs, { Crumb } from "./Breadcrumbs";
 import PartWorkspace from "./PartWorkspace";
@@ -328,7 +329,10 @@ function PartRouter({
 }
 
 /** Obecná editace jednoho seznamu řádků (katalog nástrojů, nebo šablony přípravných
- *  časů) - použité v obou příslušných záložkách detailu stroje, viz MachineDetailView. */
+ *  časů) - použité v obou příslušných záložkách detailu stroje, viz MachineDetailView.
+ *  Formulář pro přidání jde přepsat (renderAddModal) - katalog nástrojů má vlastní,
+ *  druhem nástroje řízený formulář (AddToolModal), šablony si vystačí s obecným
+ *  AddKonturaModal (výchozí, beze změny). */
 function CatalogTab({
   title,
   columns,
@@ -337,6 +341,7 @@ function CatalogTab({
   itemKind,
   addLabel,
   clearLabel,
+  renderAddModal,
 }: {
   title: string;
   columns: ColumnDef[];
@@ -345,9 +350,11 @@ function CatalogTab({
   itemKind: "nastroj" | "sablona";
   addLabel: string;
   clearLabel: string;
+  renderAddModal?: (props: { onSubmit: (row: Row) => void; onClose: () => void }) => React.ReactNode;
 }) {
   const [showModal, setShowModal] = useState(false);
   const { onChange, clearAll, undo, canUndo } = useUndoableRows(rows, setRows);
+  const addRow = (row: Row) => onChange([...rows, row]);
 
   return (
     <>
@@ -363,16 +370,19 @@ function CatalogTab({
         </button>
       </div>
       <DataTable columns={columns} rows={rows} onChange={onChange} konturaOptions={[]} itemKind={itemKind} />
-      {showModal && (
-        <AddKonturaModal
-          title={title}
-          columns={columns}
-          prevRow={rows[rows.length - 1]}
-          konturaOptions={[]}
-          onClose={() => setShowModal(false)}
-          onSubmit={(row) => onChange([...rows, row])}
-        />
-      )}
+      {showModal &&
+        (renderAddModal ? (
+          renderAddModal({ onSubmit: addRow, onClose: () => setShowModal(false) })
+        ) : (
+          <AddKonturaModal
+            title={title}
+            columns={columns}
+            prevRow={rows[rows.length - 1]}
+            konturaOptions={[]}
+            onClose={() => setShowModal(false)}
+            onSubmit={addRow}
+          />
+        ))}
     </>
   );
 }
@@ -433,6 +443,7 @@ function MachineDetailView({
             itemKind="nastroj"
             addLabel="+ Přidat nástroj"
             clearLabel="Smazat všechny nástroje"
+            renderAddModal={({ onSubmit, onClose }) => <AddToolModal onSubmit={onSubmit} onClose={onClose} />}
           />
         )
       ) : !setupHydrated ? null : (

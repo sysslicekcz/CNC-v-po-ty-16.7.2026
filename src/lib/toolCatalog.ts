@@ -32,6 +32,35 @@ export const TOOL_CATALOG_COLUMNS: ColumnDef[] = [
   { key: "poznamka", label: "Poznámka", type: "text" },
 ];
 
+export interface NastrojDruhDef {
+  value: string;
+  label: string;
+  /** Klíče z TOOL_CATALOG_COLUMNS (mimo nazev/typ/poznamka, ty se nabízí vždy),
+   *  které dává smysl u tohoto druhu nástroje vyplňovat. */
+  fields: string[];
+  /** Jestli u tohoto druhu dává smysl nabízet Typ (Hrubovací/Dokončovací/Univerzální) -
+   *  reálně ho využívá jen výběr nástroje u podélného soustružení (dva výběry podle role,
+   *  viz ColumnDef.toolRole v operations.ts), u ostatních druhů by jen matlo. */
+  showTyp: boolean;
+}
+
+/** Druh nástroje řídí jen to, které pole se při zakládání nástroje nabídnou k vyplnění
+ *  (viz AddToolModal) - není to samostatně ukládaný údaj, nástroj se pořád ukládá jako
+ *  obecný řádek (TOOL_CATALOG_COLUMNS). Nový druh stačí přidat sem, nikam jinam. */
+export const NASTROJ_DRUHY: NastrojDruhDef[] = [
+  { value: "soustruznickyNuz", label: "Soustružnický nůž", fields: ["radius", "Vc", "f", "ap"], showTyp: true },
+  { value: "zapichovaciNuz", label: "Zapichovací/upichovací nůž", fields: ["Vc", "f", "sirka", "apMax"], showTyp: false },
+  { value: "vrtak", label: "Vrták", fields: ["Vc", "f", "D"], showTyp: false },
+  { value: "freza", label: "Fréza", fields: ["f", "D", "apMax"], showTyp: false },
+  { value: "brusnyKotouc", label: "Brusný kotouč", fields: ["Vc", "ap", "D", "sirka", "k"], showTyp: false },
+  {
+    value: "obecny",
+    label: "Univerzální / jiný",
+    fields: TOOL_CATALOG_COLUMNS.filter((c) => !["nazev", "typ", "poznamka"].includes(c.key)).map((c) => c.key),
+    showTyp: true,
+  },
+];
+
 /** Popisky kategorií operací pro odvození typu stroje - viz OperationConfig.category
  *  v operations.ts. Přidání nové kategorie (a případně kombinované COMBO_LABELS níže)
  *  stačí k rozšíření bez zásahu do zbytku appky. */
