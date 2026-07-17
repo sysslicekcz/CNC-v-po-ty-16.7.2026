@@ -169,13 +169,16 @@ function ToolsView({
   const config = TOOL_OPERATIONS.find((o) => o.id === toolsActive)!;
   const columns = getToolColumns(config);
   const rows = byId[toolsActive];
+  const isPrep = toolsActive === "pripravneCasy";
+  const addLabel = isPrep ? "+ Přidat šablonu" : "+ Přidat nástroj";
 
   return (
     <div>
-      <h2 className="mb-3 text-lg font-medium">Katalog nástrojů</h2>
+      <h2 className="mb-3 text-lg font-medium">Katalog nástrojů a šablon</h2>
       <p className="mb-4 max-w-2xl text-sm text-muted">
-        Předdefinuj nástroje s jejich posuvy, řeznými rychlostmi a rozměry. Při zadávání
-        kontury je pak půjde vybrat ze seznamu a příslušná pole se předvyplní.
+        {isPrep
+          ? "Předdefinuj časté přípravné úkony s jejich časem. Při zadávání přípravného času je pak půjde vybrat ze seznamu a čas se předvyplní."
+          : "Předdefinuj nástroje s jejich posuvy, řeznými rychlostmi a rozměry. Při zadávání kontury je pak půjde vybrat ze seznamu a příslušná pole se předvyplní."}
       </p>
       <nav className="mb-4 flex flex-wrap gap-1.5">
         {TOOL_OPERATIONS.map((op) => (
@@ -189,13 +192,13 @@ function ToolsView({
           onClick={() => setShowModal(true)}
           className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition hover:border-accent hover:text-accent"
         >
-          + Přidat nástroj
+          {addLabel}
         </button>
       </div>
       <DataTable columns={columns} rows={rows} onChange={setById[toolsActive]} konturaOptions={[]} itemKind="nastroj" />
       {showModal && (
         <AddKonturaModal
-          title={`Nástroje — ${config.title}`}
+          title={`${isPrep ? "Šablony" : "Nástroje"} — ${config.title}`}
           columns={columns}
           prevRow={rows[rows.length - 1]}
           konturaOptions={[]}

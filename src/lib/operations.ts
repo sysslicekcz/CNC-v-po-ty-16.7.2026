@@ -149,7 +149,7 @@ export const OPERATIONS: OperationConfig[] = [
     shortTitle: "Příprava",
     columns: [
       { key: "nazev", label: "Název", type: "text" },
-      { key: "cas", label: "Čas", unit: "min", type: "number" },
+      { key: "cas", label: "Čas", unit: "min", type: "number", fromTool: true },
       { key: "pocet", label: "Počet úkonů", type: "number" },
     ],
   },

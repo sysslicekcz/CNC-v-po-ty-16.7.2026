@@ -43,6 +43,7 @@ export function useAllTools() {
   const frezovaniDrazek = useToolRows("frezovaniDrazek");
   const brouseniNaKulato = useToolRows("brouseniNaKulato");
   const celniZapichy = useToolRows("celniZapichy");
+  const pripravneCasy = useToolRows("pripravneCasy");
 
   const hydrated =
     podelneVnejsi.hydrated &&
@@ -52,7 +53,8 @@ export function useAllTools() {
     zapich.hydrated &&
     frezovaniDrazek.hydrated &&
     brouseniNaKulato.hydrated &&
-    celniZapichy.hydrated;
+    celniZapichy.hydrated &&
+    pripravneCasy.hydrated;
 
   return {
     hydrated,
@@ -65,6 +67,7 @@ export function useAllTools() {
       frezovaniDrazek: frezovaniDrazek.rows,
       brouseniNaKulato: brouseniNaKulato.rows,
       celniZapichy: celniZapichy.rows,
+      pripravneCasy: pripravneCasy.rows,
     } as Record<string, Row[]>,
     setById: {
       podelneVnejsi: podelneVnejsi.setRows,
@@ -75,6 +78,7 @@ export function useAllTools() {
       frezovaniDrazek: frezovaniDrazek.setRows,
       brouseniNaKulato: brouseniNaKulato.setRows,
       celniZapichy: celniZapichy.setRows,
+      pripravneCasy: pripravneCasy.setRows,
     } as Record<string, (rows: Row[]) => void>,
   };
 }

@@ -62,6 +62,12 @@ export default function AddKonturaModal({
   onSubmit: (row: Row) => void;
   onClose: () => void;
 }) {
+  const identKey = columns.find((c) => c.type === "text")?.key;
+  // U operací, kde je identifikátorem řádku "nazev" (přípravné časy), je katalogová
+  // položka pojmenovaná stejně jako výsledný úkon - výběr šablony proto vyplní i "nazev",
+  // ne jen navazující fromTool pole. U kontury naopak "nazev" katalogu (název nástroje)
+  // do pole kontura patřit nemá.
+  const toolLabel = identKey === "kontura" ? "Nástroj" : "Šablona";
   const isAutoNumbered = columns.some((c) => c.key === "kontura") && autoKonturaStart !== undefined;
   const [counter, setCounter] = useState(autoKonturaStart ?? 1);
   const [draft, setDraft] = useState<Row>(() =>
@@ -97,7 +103,7 @@ export default function AddKonturaModal({
     setDraft((d) => {
       const next = { ...d };
       for (const c of toolColumns) {
-        if (c.key === "nazev") continue;
+        if (c.key === "nazev" && identKey !== "nazev") continue;
         next[c.key] = tool[c.key] ?? next[c.key];
       }
       return next;
@@ -134,14 +140,14 @@ export default function AddKonturaModal({
         </div>
         {tools && tools.length > 0 && (
           <label key={toolSelectKey} className="mb-4 block text-sm">
-            <span className="mb-1 block text-muted">Nástroj</span>
+            <span className="mb-1 block text-muted">{toolLabel}</span>
             <select
               defaultValue=""
               onChange={(e) => applyTool(e.target.value)}
               className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-sm outline-none focus:border-accent"
             >
               <option value="" disabled>
-                Vyber nástroj z katalogu (nebo vyplň ručně)
+                Vyber {toolLabel.toLowerCase()} z katalogu (nebo vyplň ručně)
               </option>
               {tools.map((t) => (
                 <option key={String(t.nazev)} value={String(t.nazev)}>
