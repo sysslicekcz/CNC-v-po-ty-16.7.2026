@@ -41,10 +41,20 @@ export default function Summary({ byId, partInfo }: { byId: Record<string, Row[]
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="text-xs uppercase tracking-[0.2em] text-muted">Celkový výrobní čas</div>
           {partInfo && (
-            <div className="text-right text-sm text-muted">
-              <div className="text-foreground">{partInfo.customerNazev}</div>
+            <div className="space-y-1 text-right text-sm">
               <div>
-                {partInfo.inquiryNazev} · {formatPartLabel({ cisloVykresu: partInfo.partCisloVykresu, nazev: partInfo.partNazev })}
+                <span className="text-xs text-muted">Zákazník: </span>
+                <span className="text-foreground">{partInfo.customerNazev}</span>
+              </div>
+              <div>
+                <span className="text-xs text-muted">Poptávka: </span>
+                <span className="text-foreground">{partInfo.inquiryNazev}</span>
+              </div>
+              <div>
+                <span className="text-xs text-muted">Díl: </span>
+                <span className="text-foreground">
+                  {formatPartLabel({ cisloVykresu: partInfo.partCisloVykresu, nazev: partInfo.partNazev })}
+                </span>
               </div>
             </div>
           )}
