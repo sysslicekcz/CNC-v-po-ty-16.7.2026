@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Part } from "@/lib/entities";
 
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric" });
+}
+
 export default function PartList({
   items,
   hydrated,
@@ -89,19 +93,22 @@ export default function PartList({
           <ul className="divide-y divide-border/60">
             {sorted.map((item) => (
               <li key={item.id} className="flex items-center justify-between px-4 py-2 hover:bg-surface-raised/50">
-                <button onClick={() => onOpen(item)} className="flex-1 text-left text-sm">
-                  {item.cisloVykresu ? (
-                    <>
-                      <span className="tabular text-accent">{item.cisloVykresu}</span>
-                      <span className="text-muted"> · </span>
-                    </>
-                  ) : null}
-                  <span className="text-foreground">{item.nazev}</span>
+                <button onClick={() => onOpen(item)} className="flex flex-1 items-center justify-between text-left text-sm">
+                  <span>
+                    {item.cisloVykresu ? (
+                      <>
+                        <span className="tabular text-accent">{item.cisloVykresu}</span>
+                        <span className="text-muted"> · </span>
+                      </>
+                    ) : null}
+                    <span className="text-foreground">{item.nazev}</span>
+                  </span>
+                  <span className="tabular text-xs text-muted">založeno {formatDate(item.createdAt)}</span>
                 </button>
                 <button
                   onClick={() => remove(item)}
                   aria-label="Smazat"
-                  className="text-muted transition hover:text-danger"
+                  className="ml-3 text-muted transition hover:text-danger"
                 >
                   ✕
                 </button>
