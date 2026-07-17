@@ -44,9 +44,16 @@ npm run start
 ## Struktura
 
 Data se organizují do hierarchie **Zákazník → Poptávka → Díl**. Každý díl má
-vlastní sadu výše uvedených operací a výstupů. Katalog nástrojů (posuvy, řezné
-rychlosti, rozměry) je společný pro všechny díly — vybere se u kontury a
-příslušná pole se předvyplní.
+vlastní sadu výše uvedených operací a výstupů.
+
+Stroje se spravují v samostatné sekci **Stroje** — každý stroj má vlastní
+detail se záložkami **Parametry stroje** (název, maximální otáčky, volitelná
+hodinová sazba, podporované operace — typ stroje se z nich sám odvodí),
+**Nástroje** (katalog nástrojů toho stroje: název, typ, radius špičky, řezné
+podmínky) a **Seřízení** (šablony přípravných časů). U dílu/polohy se vybere
+stroj, čímž se nabídka operací i katalog nástrojů zúží jen na to, co ten
+stroj umí — u kontury se pak vybere nástroj a příslušná pole se předvyplní
+(hodnoty jde ručně přepsat, aniž by se změnil uložený nástroj).
 
 ## Data
 

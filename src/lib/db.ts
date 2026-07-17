@@ -2,7 +2,7 @@
 // (po mountu, uvnitř useEffect), takže "indexedDB" tu nikdy nesahá na SSR.
 
 const DB_NAME = "cnc-casovac";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export type StoreName =
   | "customers"
@@ -11,6 +11,8 @@ export type StoreName =
   | "positions"
   | "partOperationRows"
   | "toolRows"
+  | "tools"
+  | "setupTemplates"
   | "machines"
   | "meta";
 
@@ -53,6 +55,18 @@ function openDb(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains("toolRows")) {
           db.createObjectStore("toolRows", { keyPath: "id" });
+        }
+        // v5: katalog nástrojů se z per-operace záznamů (toolRows) sloučil do
+        // jednoho obecného seznamu na stroj ("tools") + zvlášť šablony
+        // přípravných časů ("setupTemplates") - viz lib/toolCatalog.ts a
+        // migrateMachineCatalogIfNeeded v migrateLegacy.ts, které staré
+        // "toolRows" po startu appky převedou a vyprázdní. Store "toolRows"
+        // zůstává založený, ať má migrace odkud číst.
+        if (!db.objectStoreNames.contains("tools")) {
+          db.createObjectStore("tools", { keyPath: "strojId" });
+        }
+        if (!db.objectStoreNames.contains("setupTemplates")) {
+          db.createObjectStore("setupTemplates", { keyPath: "strojId" });
         }
         if (!db.objectStoreNames.contains("machines")) {
           db.createObjectStore("machines", { keyPath: "id" });

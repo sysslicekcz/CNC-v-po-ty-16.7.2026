@@ -37,11 +37,15 @@ export interface Position {
 export interface Machine {
   id: string;
   nazev: string;
-  /** Hodinová sazba stroje v Kč/hod. */
-  sazba: number;
+  /** Hodinová sazba stroje v Kč/hod - volitelná. */
+  sazba?: number;
+  /** Maximální otáčky vřetena [ot/min] - volitelné (starší stroje bez vyplnění). */
+  maximalniOtacky?: number;
   /** Id operací (viz MACHINE_OPERATIONS v operations.ts), které tenhle stroj umí -
    *  např. soustruh nemá "brouseniNaKulato". Přípravné časy jsou vždy dostupné u
-   *  všech strojů, takže se sem nezapisují. */
+   *  všech strojů, takže se sem nezapisují. Typ stroje (soustruh/frézka/bruska/...)
+   *  se z tohohle seznamu jen odvozuje (viz lib/toolCatalog.ts deriveMachineType) -
+   *  nikde se neukládá. */
   operace: string[];
   createdAt: number;
 }
@@ -218,12 +222,15 @@ export function useMachines() {
   }, []);
   useReloadOnRestore(reload);
 
-  const add = async (nazev: string, sazba: number, operace: string[]) => {
-    await put<Machine>("machines", { id: crypto.randomUUID(), nazev, sazba, operace, createdAt: Date.now() });
+  const add = async (fields: { nazev: string; sazba?: number; maximalniOtacky?: number; operace: string[] }) => {
+    await put<Machine>("machines", { id: crypto.randomUUID(), ...fields, createdAt: Date.now() });
     reload();
   };
 
-  const update = async (id: string, patch: { nazev: string; sazba: number; operace: string[] }) => {
+  const update = async (
+    id: string,
+    patch: { nazev: string; sazba?: number; maximalniOtacky?: number; operace: string[] }
+  ) => {
     const current = items.find((m) => m.id === id);
     if (!current) return;
     await put<Machine>("machines", { ...current, ...patch });
@@ -231,7 +238,7 @@ export function useMachines() {
   };
 
   const remove = async (id: string) => {
-    await del("machines", id);
+    await Promise.all([del("machines", id), del("tools", id), del("setupTemplates", id)]);
     reload();
   };
 

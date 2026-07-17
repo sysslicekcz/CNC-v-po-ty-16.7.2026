@@ -32,15 +32,18 @@ export default function DataTable({
   rows: Row[];
   onChange: (rows: Row[]) => void;
   konturaOptions: string[];
-  /** Ovlivňuje jen texty hlášek — "kontura" (výchozí) pro operace, "nastroj" pro katalog nástrojů. */
-  itemKind?: "kontura" | "nastroj";
+  /** Ovlivňuje jen texty hlášek — "kontura" (výchozí) pro operace, "nastroj" pro
+   *  katalog nástrojů, "sablona" pro šablony přípravných časů. */
+  itemKind?: "kontura" | "nastroj" | "sablona";
 }) {
   const listId = useId();
   const identKey = columns.find((c) => c.type === "text")?.key;
   const texts =
     itemKind === "nastroj"
       ? { empty: "Zatím žádné nástroje. Přidej nástroj tlačítkem výše." }
-      : { empty: "Zatím žádné kontury. Přidej konturu tlačítkem výše." };
+      : itemKind === "sablona"
+        ? { empty: "Zatím žádné šablony. Přidej šablonu tlačítkem výše." }
+        : { empty: "Zatím žádné kontury. Přidej konturu tlačítkem výše." };
 
   const [filterText, setFilterText] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -69,7 +72,7 @@ export default function DataTable({
 
   const removeRow = (idx: number) => {
     const label = identKey ? String(rows[idx][identKey] ?? "") : "";
-    const deleteNoun = itemKind === "nastroj" ? "nástroj" : "konturu";
+    const deleteNoun = itemKind === "nastroj" ? "nástroj" : itemKind === "sablona" ? "šablonu" : "konturu";
     if (!window.confirm(`Smazat ${deleteNoun}${label ? ` „${label}“` : ""}?`)) return;
     onChange(rows.filter((_, i) => i !== idx));
   };
@@ -144,18 +147,35 @@ export default function DataTable({
                     const missing = c.type === "number" && rowStarted && (row[c.key] === null || row[c.key] === undefined);
                     return (
                       <td key={c.key} className="px-2 py-1">
-                        <input
-                          type={c.type === "number" ? "number" : "text"}
-                          step="any"
-                          list={c.key === "kontura" ? listId : undefined}
-                          value={row[c.key] === null || row[c.key] === undefined ? "" : row[c.key]!}
-                          onChange={(e) => updateCell(originalIndex, c.key, e.target.value)}
-                          placeholder={c.type === "number" ? "0" : "—"}
-                          className={
-                            "tabular w-full min-w-[6.5rem] rounded border bg-transparent px-2 py-1 outline-none focus:border-accent focus:bg-surface " +
-                            (missing ? "border-danger/50 bg-danger/5" : "border-transparent")
-                          }
-                        />
+                        {c.type === "select" ? (
+                          <select
+                            value={row[c.key] === null || row[c.key] === undefined ? "" : String(row[c.key])}
+                            onChange={(e) => updateCell(originalIndex, c.key, e.target.value)}
+                            className="w-full min-w-[8rem] rounded border border-transparent bg-transparent px-2 py-1 outline-none focus:border-accent focus:bg-surface"
+                          >
+                            <option value="" disabled>
+                              —
+                            </option>
+                            {c.options?.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={c.type === "number" ? "number" : "text"}
+                            step="any"
+                            list={c.key === "kontura" ? listId : undefined}
+                            value={row[c.key] === null || row[c.key] === undefined ? "" : row[c.key]!}
+                            onChange={(e) => updateCell(originalIndex, c.key, e.target.value)}
+                            placeholder={c.type === "number" ? "0" : "—"}
+                            className={
+                              "tabular w-full min-w-[6.5rem] rounded border bg-transparent px-2 py-1 outline-none focus:border-accent focus:bg-surface " +
+                              (missing ? "border-danger/50 bg-danger/5" : "border-transparent")
+                            }
+                          />
+                        )}
                       </td>
                     );
                   })}

@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { OPERATIONS, filterOperationsForMachine, getToolColumns } from "@/lib/operations";
+import { OPERATIONS, filterOperationsForMachine } from "@/lib/operations";
 import { computeOperation, Row } from "@/lib/results";
 import { useAllPartRows } from "@/lib/usePartRows";
-import { useAllTools } from "@/lib/useAllTools";
+import { useToolCatalog, useSetupTemplates } from "@/lib/useToolCatalog";
 import { useUndoableRows } from "@/lib/useUndoableRows";
 import { actionButtonClass } from "@/lib/actionButtonClass";
 import { collectKonturaNames, nextKonturaNumber } from "@/lib/konturaNames";
@@ -33,7 +33,7 @@ function OperationTab({
   const [showModal, setShowModal] = useState(false);
   const config = OPERATIONS.find((o) => o.id === id)!;
   const result = useMemo(() => computeOperation(id, rows), [id, rows]);
-  const toolColumns = tools ? getToolColumns(config) : undefined;
+  const toolColumns = useMemo(() => config.columns.filter((c) => c.fromTool), [config]);
   const { onChange, clearAll, undo, canUndo } = useUndoableRows(rows, setRows);
 
   return (
@@ -92,7 +92,9 @@ export default function PartWorkspace({
   const [active, setActive] = useState<string>("summary");
   const { hydrated, byId, setById } = useAllPartRows(positionId);
   const machine = machines.find((m) => m.id === strojId);
-  const { hydrated: toolsHydrated, byId: toolsById } = useAllTools(strojId);
+  const { rows: toolCatalogRows, hydrated: toolCatalogHydrated } = useToolCatalog(strojId);
+  const { rows: setupTemplateRows, hydrated: setupTemplatesHydrated } = useSetupTemplates(strojId);
+  const toolsHydrated = toolCatalogHydrated && setupTemplatesHydrated;
   const konturaOptions = useMemo(() => collectKonturaNames(byId), [byId]);
   const autoKontura = useMemo(() => nextKonturaNumber(byId), [byId]);
   const sazba = machine?.sazba;
@@ -148,7 +150,7 @@ export default function PartWorkspace({
           setRows={setById[effectiveActive]}
           konturaOptions={konturaOptions}
           autoKonturaStart={autoKontura}
-          tools={toolsById[effectiveActive]}
+          tools={effectiveActive === "pripravneCasy" ? setupTemplateRows : toolCatalogRows}
         />
       )}
     </div>

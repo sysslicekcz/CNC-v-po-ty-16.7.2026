@@ -3,17 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useCustomers, useInquiries, useParts, usePositions, useMachines, formatPartLabel, Part, Position, Machine } from "@/lib/entities";
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
-import { migrateLegacyDataIfNeeded } from "@/lib/migrateLegacy";
+import { migrateLegacyDataIfNeeded, migrateMachineCatalogIfNeeded } from "@/lib/migrateLegacy";
 import { checkAvailable } from "@/lib/db";
-import {
-  TOOL_OPERATIONS,
-  MACHINE_OPERATIONS,
-  filterOperationsForMachine,
-  getToolColumns,
-  OperationConfig,
-  ColumnDef,
-} from "@/lib/operations";
-import { useAllTools } from "@/lib/useAllTools";
+import { MACHINE_OPERATIONS, OPERATIONS, ColumnDef } from "@/lib/operations";
+import { deriveMachineType, TOOL_CATALOG_COLUMNS } from "@/lib/toolCatalog";
+import { useToolCatalog, useSetupTemplates } from "@/lib/useToolCatalog";
 import { useUndoableRows } from "@/lib/useUndoableRows";
 import { computePositionTotal } from "@/lib/positionTotal";
 import { Row } from "@/lib/results";
@@ -43,7 +37,7 @@ type View =
       positionId?: string;
       positionNazev?: string;
     }
-  | { level: "nastroje" }
+  | { level: "stroj"; strojId: string; strojNazev: string; strojTab?: "parametry" | "nastroje" | "serizeni" }
   | { level: "stroje" }
   | { level: "zalohy" };
 
@@ -67,6 +61,8 @@ function labelForView(v: View): string {
       return v.inquiryNazev;
     case "part":
       return formatPartLabel({ cisloVykresu: v.partCisloVykresu, nazev: v.partNazev });
+    case "stroj":
+      return v.strojNazev;
     default:
       return "Domů";
   }
@@ -331,23 +327,27 @@ function PartRouter({
   );
 }
 
-function ToolCatalogTab({
-  config,
+/** Obecná editace jednoho seznamu řádků (katalog nástrojů, nebo šablony přípravných
+ *  časů) - použité v obou příslušných záložkách detailu stroje, viz MachineDetailView. */
+function CatalogTab({
+  title,
   columns,
   rows,
   setRows,
-  isPrep,
+  itemKind,
+  addLabel,
+  clearLabel,
 }: {
-  config: OperationConfig;
+  title: string;
   columns: ColumnDef[];
   rows: Row[];
   setRows: (rows: Row[]) => void;
-  isPrep: boolean;
+  itemKind: "nastroj" | "sablona";
+  addLabel: string;
+  clearLabel: string;
 }) {
   const [showModal, setShowModal] = useState(false);
   const { onChange, clearAll, undo, canUndo } = useUndoableRows(rows, setRows);
-  const addLabel = isPrep ? "+ Přidat šablonu" : "+ Přidat nástroj";
-  const clearLabel = isPrep ? "Smazat všechny šablony" : "Smazat všechny nástroje";
 
   return (
     <>
@@ -362,10 +362,10 @@ function ToolCatalogTab({
           {clearLabel}
         </button>
       </div>
-      <DataTable columns={columns} rows={rows} onChange={onChange} konturaOptions={[]} itemKind="nastroj" />
+      <DataTable columns={columns} rows={rows} onChange={onChange} konturaOptions={[]} itemKind={itemKind} />
       {showModal && (
         <AddKonturaModal
-          title={`${isPrep ? "Šablony" : "Nástroje"} — ${config.title}`}
+          title={title}
           columns={columns}
           prevRow={rows[rows.length - 1]}
           konturaOptions={[]}
@@ -377,100 +377,74 @@ function ToolCatalogTab({
   );
 }
 
-function ToolsView({
-  toolsActive,
-  setToolsActive,
+const PRIPRAVA_CONFIG = OPERATIONS.find((o) => o.id === "pripravneCasy")!;
+
+function MachineDetailView({
   strojId,
-  setStrojId,
+  strojTab,
+  onSetTab,
+  onBack,
 }: {
-  toolsActive: string;
-  setToolsActive: (id: string) => void;
-  strojId: string | undefined;
-  setStrojId: (id: string | undefined) => void;
+  strojId: string;
+  strojTab: "parametry" | "nastroje" | "serizeni";
+  onSetTab: (tab: "parametry" | "nastroje" | "serizeni") => void;
+  onBack: () => void;
 }) {
-  const { items: machines, hydrated: machinesHydrated } = useMachines();
+  const { items: machines, hydrated: machinesHydrated, update } = useMachines();
   const machine = machines.find((m) => m.id === strojId);
-  const opsForMachine = filterOperationsForMachine(TOOL_OPERATIONS, machine?.operace);
-  // Katalog je teď per stroj - pokud aktuálně vybraná záložka operace u zvoleného
-  // stroje nedává smysl (stroj tu operaci neumí, nebo se teprve vybírá stroj),
-  // rovnou spadneme na první operaci, kterou stroj podporuje.
-  const effectiveActive = opsForMachine.some((o) => o.id === toolsActive) ? toolsActive : opsForMachine[0]?.id;
-
-  // Volá se, až když je CncApp jistě po migraci (viz "!migrated ? null : ..." níže) -
-  // kdyby se tenhle hook volal dřív, mohl by načíst katalog nástrojů ještě před tím,
-  // než ho migrace ze staré localStorage stihne dopsat do IndexedDB.
-  const { hydrated: toolsHydrated, byId, setById } = useAllTools(strojId);
-
-  useEffect(() => {
-    if (effectiveActive && effectiveActive !== toolsActive) setToolsActive(effectiveActive);
-  }, [effectiveActive, toolsActive, setToolsActive]);
+  const { rows: toolRows, setRows: setToolRows, hydrated: toolsHydrated } = useToolCatalog(strojId);
+  const { rows: setupRows, setRows: setSetupRows, hydrated: setupHydrated } = useSetupTemplates(strojId);
 
   if (!machinesHydrated) return null;
-
-  if (machines.length === 0) {
-    return (
-      <div>
-        <h2 className="mb-3 text-lg font-medium">Katalog nástrojů a šablon</h2>
-        <p className="max-w-2xl text-sm text-muted">
-          Katalog nástrojů je veden zvlášť pro každý stroj. Nejdřív založ aspoň jeden stroj v záložce{" "}
-          <span className="text-foreground">Stroje</span>.
-        </p>
-      </div>
-    );
+  if (!machine) {
+    return <p className="text-sm text-muted">Stroj nenalezen.</p>;
   }
 
-  const config = effectiveActive ? TOOL_OPERATIONS.find((o) => o.id === effectiveActive)! : undefined;
-  const columns = config ? getToolColumns(config) : [];
-  const rows = effectiveActive ? byId[effectiveActive] : [];
-  const isPrep = effectiveActive === "pripravneCasy";
-
   return (
-    <div>
-      <h2 className="mb-3 text-lg font-medium">Katalog nástrojů a šablon</h2>
-      <p className="mb-4 max-w-2xl text-sm text-muted">
-        Katalog nástrojů je veden zvlášť pro každý stroj - vyber stroj a jen u něj přednastav nástroje,
-        které umí (podle operací zvolených u stroje v záložce Stroje).
-      </p>
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-        <label className="text-muted">Stroj:</label>
-        <select
-          value={strojId ?? ""}
-          onChange={(e) => setStrojId(e.target.value || undefined)}
-          className="rounded border border-border bg-transparent px-2 py-1 outline-none focus:border-accent"
-        >
-          <option value="" disabled>
-            — vyber stroj —
-          </option>
-          {machines.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nazev}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="space-y-4">
+      <nav className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+        <TabButton active={strojTab === "parametry"} onClick={() => onSetTab("parametry")}>
+          Parametry stroje
+        </TabButton>
+        <TabButton active={strojTab === "nastroje"} onClick={() => onSetTab("nastroje")}>
+          Nástroje
+        </TabButton>
+        <TabButton active={strojTab === "serizeni"} onClick={() => onSetTab("serizeni")}>
+          Seřízení
+        </TabButton>
+      </nav>
 
-      {!strojId || !config ? (
-        <div className="rounded-lg border border-border bg-surface p-8 text-center text-sm text-muted">
-          Vyber stroj, jehož katalog nástrojů chceš spravovat.
+      {strojTab === "parametry" ? (
+        <div className="space-y-4">
+          <div className="text-sm">
+            <span className="text-muted">Typ stroje: </span>
+            <span className="text-accent">{deriveMachineType(machine.operace)}</span>
+            <span className="text-muted/70"> (odvozeno z podporovaných operací)</span>
+          </div>
+          <MachineForm initial={machine} onSubmit={(fields) => update(machine.id, fields)} onCancel={onBack} />
         </div>
-      ) : !toolsHydrated ? null : (
-        <>
-          <nav className="mb-4 flex flex-wrap gap-1.5">
-            {opsForMachine.map((op) => (
-              <TabButton key={op.id} active={effectiveActive === op.id} onClick={() => setToolsActive(op.id)}>
-                {op.shortTitle}
-              </TabButton>
-            ))}
-          </nav>
-          <ToolCatalogTab
-            key={`${strojId}:${effectiveActive}`}
-            config={config}
-            columns={columns}
-            rows={rows}
-            setRows={setById[effectiveActive]}
-            isPrep={isPrep}
+      ) : strojTab === "nastroje" ? (
+        !toolsHydrated ? null : (
+          <CatalogTab
+            title={`Nástroje — ${machine.nazev}`}
+            columns={TOOL_CATALOG_COLUMNS}
+            rows={toolRows}
+            setRows={setToolRows}
+            itemKind="nastroj"
+            addLabel="+ Přidat nástroj"
+            clearLabel="Smazat všechny nástroje"
           />
-        </>
+        )
+      ) : !setupHydrated ? null : (
+        <CatalogTab
+          title={`Seřízení — ${machine.nazev}`}
+          columns={PRIPRAVA_CONFIG.columns}
+          rows={setupRows}
+          setRows={setSetupRows}
+          itemKind="sablona"
+          addLabel="+ Přidat šablonu"
+          clearLabel="Smazat všechny šablony"
+        />
       )}
     </div>
   );
@@ -482,11 +456,14 @@ function MachineForm({
   onCancel,
 }: {
   initial?: Machine;
-  onSubmit: (fields: { nazev: string; sazba: number; operace: string[] }) => void;
+  onSubmit: (fields: { nazev: string; maximalniOtacky: number; sazba?: number; operace: string[] }) => void;
   onCancel: () => void;
 }) {
   const [nazev, setNazev] = useState(initial?.nazev ?? "");
-  const [sazba, setSazba] = useState(initial ? String(initial.sazba) : "");
+  const [maximalniOtacky, setMaximalniOtacky] = useState(
+    initial?.maximalniOtacky !== undefined ? String(initial.maximalniOtacky) : ""
+  );
+  const [sazba, setSazba] = useState(initial?.sazba !== undefined ? String(initial.sazba) : "");
   const [operace, setOperace] = useState<string[]>(initial?.operace ?? MACHINE_OPERATIONS.map((o) => o.id));
 
   const toggle = (id: string) => {
@@ -496,14 +473,20 @@ function MachineForm({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedNazev = nazev.trim();
-    const sazbaNum = Number(sazba);
-    if (!trimmedNazev || !Number.isFinite(sazbaNum) || sazbaNum < 0) return;
-    onSubmit({ nazev: trimmedNazev, sazba: sazbaNum, operace });
+    const otackyNum = Number(maximalniOtacky);
+    if (!trimmedNazev || !Number.isFinite(otackyNum) || otackyNum <= 0) return;
+    let sazbaNum: number | undefined;
+    if (sazba.trim() !== "") {
+      const n = Number(sazba);
+      if (!Number.isFinite(n) || n < 0) return;
+      sazbaNum = n;
+    }
+    onSubmit({ nazev: trimmedNazev, maximalniOtacky: otackyNum, sazba: sazbaNum, operace });
   };
 
   return (
     <form onSubmit={submit} className="max-w-lg space-y-4 rounded-lg border border-border bg-surface p-4">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <input
           type="text"
           value={nazev}
@@ -513,10 +496,17 @@ function MachineForm({
         />
         <input
           type="number"
+          value={maximalniOtacky}
+          onChange={(e) => setMaximalniOtacky(e.target.value)}
+          placeholder="Max. otáčky ot/min"
+          className="w-40 rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
+        />
+        <input
+          type="number"
           value={sazba}
           onChange={(e) => setSazba(e.target.value)}
-          placeholder="Sazba Kč/hod"
-          className="w-36 rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
+          placeholder="Sazba Kč/hod (volitelné)"
+          className="w-44 rounded border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
         />
       </div>
       <div>
@@ -559,36 +549,26 @@ function MachineForm({
   );
 }
 
-function StrojeView() {
-  const { items, hydrated, add, update, remove } = useMachines();
-  const [editingId, setEditingId] = useState<string | null>(null);
+function StrojeView({ onOpenMachine }: { onOpenMachine: (m: Machine) => void }) {
+  const { items, hydrated, add, remove } = useMachines();
   const [showAdd, setShowAdd] = useState(false);
 
   if (!hydrated) return null;
-  const editing = items.find((m) => m.id === editingId);
 
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-medium">Stroje</h2>
       <p className="max-w-2xl text-sm text-muted">
-        Založ stroje s jejich hodinovou sazbou a operacemi, které umí (např. soustruh neumí brousit).
-        U poloh dílů pak půjde vybrat, na kterém stroji se dělaly - appka k výrobnímu času dopočítá
-        cenu a v pracovním prostoru dílu nabídne jen operace, které ten stroj podporuje.
+        Založ stroje s jejich maximálními otáčkami a operacemi, které umí (např. soustruh neumí brousit).
+        Typ stroje (soustruh/frézka/bruska/...) appka odvodí sama z povolených operací. U poloh dílů pak
+        půjde vybrat, na kterém stroji se dělaly - appka k výrobnímu času dopočítá cenu (je-li u stroje
+        zadaná sazba) a v pracovním prostoru dílu nabídne jen operace a nástroje, které ten stroj podporuje.
       </p>
 
-      {editing ? (
-        <MachineForm
-          initial={editing}
-          onSubmit={(fields) => {
-            update(editing.id, fields);
-            setEditingId(null);
-          }}
-          onCancel={() => setEditingId(null)}
-        />
-      ) : showAdd ? (
+      {showAdd ? (
         <MachineForm
           onSubmit={(fields) => {
-            add(fields.nazev, fields.sazba, fields.operace);
+            add(fields);
             setShowAdd(false);
           }}
           onCancel={() => setShowAdd(false)}
@@ -604,19 +584,16 @@ function StrojeView() {
         items={items}
         hydrated={hydrated}
         onAdd={() => {}}
-        onRemove={(id) => {
-          remove(id);
-          if (editingId === id) setEditingId(null);
-        }}
+        onRemove={remove}
         onOpen={(m) => {
           setShowAdd(false);
-          setEditingId(m.id);
+          onOpenMachine(m);
         }}
         addPlaceholder=""
         emptyMessage="Zatím žádné stroje. Založ první tlačítkem výše."
         deleteNoun="stroj"
         hideAddForm
-        renderExtra={(m) => `${formatKc(m.sazba)}/hod`}
+        renderExtra={(m) => `${deriveMachineType(m.operace)}${m.sazba !== undefined ? ` · ${formatKc(m.sazba)}/hod` : ""}`}
       />
     </div>
   );
@@ -626,15 +603,16 @@ export default function CncApp() {
   const [migrated, setMigrated] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [view, setView] = useState<View>({ level: "home" });
-  const [toolsActive, setToolsActive] = useState<string>(TOOL_OPERATIONS[0].id);
-  const [nastrojeStrojId, setNastrojeStrojId] = useState<string | undefined>(undefined);
-  // Poslední navštívené místo mimo Nástroje/Zálohy - umožňuje se odtamtud vrátit
+  // Poslední navštívené místo mimo Stroje/Zálohy - umožňuje se odtamtud vrátit
   // jedním krokem přímo tam, kde uživatel byl (ne jen na Domů). Nastavuje se přímo
   // při renderu (ne v efektu), stejným způsobem jako React doporučuje pro odvozený
   // stav navázaný na změnu jiného stavu.
   const [prevView, setPrevView] = useState(view);
   const [lastLocation, setLastLocation] = useState<View>({ level: "home" });
-  const isUtilityLevel = (l: View["level"]) => l === "nastroje" || l === "stroje" || l === "zalohy";
+  // "stroj" (detail stroje) se breadcrumbem vrací na "stroje" (seznam), ne na
+  // poslední navštívené místo v Domů stromu - proto se počítá jako "utility"
+  // stejně jako stroje/zálohy (viz i nav tlačítko Domů níže).
+  const isUtilityLevel = (l: View["level"]) => l === "stroj" || l === "stroje" || l === "zalohy";
 
   if (prevView !== view) {
     setPrevView(view);
@@ -647,7 +625,7 @@ export default function CncApp() {
     checkAvailable().catch((err) =>
       setDbError(err instanceof Error ? err.message : "Úložiště dat se nepodařilo otevřít.")
     );
-    migrateLegacyDataIfNeeded().then(() => setMigrated(true));
+    migrateLegacyDataIfNeeded().then(() => migrateMachineCatalogIfNeeded().then(() => setMigrated(true)));
   }, []);
 
   if (dbError) {
@@ -669,11 +647,14 @@ export default function CncApp() {
   let crumbs: Crumb[] = [];
   let current: string | undefined;
 
-  if (isUtilityLevel(view.level)) {
+  if (view.level === "stroj") {
+    crumbs = [{ label: "Stroje", onClick: () => setView({ level: "stroje" }) }];
+    current = view.strojNazev;
+  } else if (isUtilityLevel(view.level)) {
     if (lastLocation.level !== "home") {
       crumbs = [{ label: `← ${labelForView(lastLocation)}`, onClick: () => setView(lastLocation) }];
     }
-    current = view.level === "nastroje" ? "Nástroje" : view.level === "stroje" ? "Stroje" : "Zálohy";
+    current = view.level === "stroje" ? "Stroje" : "Zálohy";
   } else if (view.level === "customer") {
     crumbs = [{ label: "Domů", onClick: () => setView({ level: "home" }) }];
     current = view.customerNazev;
@@ -743,10 +724,10 @@ export default function CncApp() {
           <TabButton active={!isUtilityLevel(view.level)} onClick={() => setView({ level: "home" })}>
             Domů
           </TabButton>
-          <TabButton active={view.level === "nastroje"} onClick={() => setView({ level: "nastroje" })}>
-            Nástroje
-          </TabButton>
-          <TabButton active={view.level === "stroje"} onClick={() => setView({ level: "stroje" })}>
+          <TabButton
+            active={view.level === "stroje" || view.level === "stroj"}
+            onClick={() => setView({ level: "stroje" })}
+          >
             Stroje
           </TabButton>
           <TabButton active={view.level === "zalohy"} onClick={() => setView({ level: "zalohy" })}>
@@ -808,15 +789,17 @@ export default function CncApp() {
             onOpenPosition={(p) => setView({ ...view, positionId: p.id, positionNazev: p.nazev })}
             onClearPosition={() => setView({ ...view, positionId: undefined, positionNazev: undefined })}
           />
-        ) : view.level === "nastroje" ? (
-          <ToolsView
-            toolsActive={toolsActive}
-            setToolsActive={setToolsActive}
-            strojId={nastrojeStrojId}
-            setStrojId={setNastrojeStrojId}
+        ) : view.level === "stroj" ? (
+          <MachineDetailView
+            strojId={view.strojId}
+            strojTab={view.strojTab ?? "parametry"}
+            onSetTab={(tab) => setView({ ...view, strojTab: tab })}
+            onBack={() => setView({ level: "stroje" })}
           />
         ) : view.level === "stroje" ? (
-          <StrojeView />
+          <StrojeView
+            onOpenMachine={(m) => setView({ level: "stroj", strojId: m.id, strojNazev: m.nazev, strojTab: "parametry" })}
+          />
         ) : (
           <BackupView />
         )}

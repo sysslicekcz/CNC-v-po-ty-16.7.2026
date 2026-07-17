@@ -2,13 +2,20 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { ColumnDef } from "@/lib/operations";
+import { applyToolToRow } from "@/lib/toolCatalog";
 import { Row } from "@/lib/results";
 
 function buildDefaultRow(columns: ColumnDef[], prevRow: Row | undefined, autoKontura: string | undefined): Row {
   const r: Row = {};
   for (const c of columns) {
     if (c.type !== "number") {
-      r[c.key] = c.key === "kontura" && autoKontura !== undefined ? autoKontura : "";
+      if (c.key === "kontura" && autoKontura !== undefined) {
+        r[c.key] = autoKontura;
+      } else if (c.default !== undefined) {
+        r[c.key] = c.default;
+      } else {
+        r[c.key] = "";
+      }
       continue;
     }
     // Rozměry konkrétní kontury (délka, průměry, počty…) se liší řádek od řádku,
@@ -55,9 +62,10 @@ export default function AddKonturaModal({
   konturaOptions: string[];
   /** Další volné číslo kontury napříč celým dílem - undefined u operací bez pole "kontura". */
   autoKonturaStart?: number;
-  /** Katalog nástrojů dostupný pro tuto operaci (prázdné/chybí = žádný výběr nástroje). */
+  /** Katalog nástrojů (nebo šablon přípravných časů) dostupný pro tuto operaci - prázdné/chybí = žádný výběr. */
   tools?: Row[];
-  /** Sloupce katalogu odpovídající poli "nazev" + fromTool polím této operace. */
+  /** Sloupce této operace, které se dají předvyplnit z nástroje (fromTool), s mapováním
+   *  na pole nástroje (toolField/toolRole) - viz operations.ts a lib/toolCatalog.ts. */
   toolColumns?: ColumnDef[];
   onSubmit: (row: Row) => void;
   onClose: () => void;
@@ -79,6 +87,15 @@ export default function AddKonturaModal({
   const focusKey = getFocusKey(columns);
   const focusFieldRef = useRef<HTMLInputElement>(null);
 
+  // Operace se dvěma souběžnými sadami řezných hodnot (hrubování + dokončování,
+  // viz podélné soustružení) potřebují dva nezávislé výběry nástroje místo jednoho -
+  // Typ nástroje (Hrubovací/Dokončovací/Univerzální) pak filtruje nabídku každého z nich.
+  const hasDualRole = Boolean(toolColumns?.some((c) => c.toolRole));
+  const hrubColumns = toolColumns?.filter((c) => c.toolRole !== "dok");
+  const dokColumns = toolColumns?.filter((c) => c.toolRole === "dok");
+  const hrubTools = tools?.filter((t) => t.typ !== "dokoncovaci");
+  const dokTools = tools?.filter((t) => t.typ !== "hrubovaci");
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -97,16 +114,15 @@ export default function AddKonturaModal({
     setDraft((d) => ({ ...d, [key]: type === "number" ? (value === "" ? null : Number(value)) : value }));
   };
 
-  const applyTool = (nazev: string) => {
-    const tool = tools?.find((t) => t.nazev === nazev);
-    if (!tool || !toolColumns) return;
+  const applyTool = (nazev: string, sourceTools: Row[] | undefined, cols: ColumnDef[] | undefined) => {
+    const tool = sourceTools?.find((t) => t.nazev === nazev);
+    if (!tool || !cols) return;
     setDraft((d) => {
-      const next = { ...d };
-      for (const c of toolColumns) {
-        if (c.key === "nazev" && identKey !== "nazev") continue;
-        next[c.key] = tool[c.key] ?? next[c.key];
+      const patch = applyToolToRow(tool, cols);
+      if (identKey === "nazev" && cols.some((c) => c.key === "nazev" || c.toolField)) {
+        patch.nazev = tool.nazev;
       }
-      return next;
+      return { ...d, ...patch };
     });
   };
 
@@ -138,12 +154,50 @@ export default function AddKonturaModal({
           <h3 className="text-base font-medium">{title}</h3>
           {justAdded && <span className="text-sm text-ok">✓ Přidáno</span>}
         </div>
-        {tools && tools.length > 0 && (
+        {tools && tools.length > 0 && hasDualRole && (
+          <div key={toolSelectKey} className="mb-4 grid grid-cols-2 gap-2">
+            <label className="block text-sm">
+              <span className="mb-1 block text-muted">Nástroj (hrubování)</span>
+              <select
+                defaultValue=""
+                onChange={(e) => applyTool(e.target.value, hrubTools, hrubColumns)}
+                className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-sm outline-none focus:border-accent"
+              >
+                <option value="" disabled>
+                  Vyber nástroj
+                </option>
+                {hrubTools?.map((t) => (
+                  <option key={String(t.nazev)} value={String(t.nazev)}>
+                    {String(t.nazev)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-muted">Nástroj (dokončování)</span>
+              <select
+                defaultValue=""
+                onChange={(e) => applyTool(e.target.value, dokTools, dokColumns)}
+                className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-sm outline-none focus:border-accent"
+              >
+                <option value="" disabled>
+                  Vyber nástroj
+                </option>
+                {dokTools?.map((t) => (
+                  <option key={String(t.nazev)} value={String(t.nazev)}>
+                    {String(t.nazev)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+        {tools && tools.length > 0 && !hasDualRole && (
           <label key={toolSelectKey} className="mb-4 block text-sm">
             <span className="mb-1 block text-muted">{toolLabel}</span>
             <select
               defaultValue=""
-              onChange={(e) => applyTool(e.target.value)}
+              onChange={(e) => applyTool(e.target.value, tools, toolColumns)}
               className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-sm outline-none focus:border-accent"
             >
               <option value="" disabled>
@@ -164,17 +218,34 @@ export default function AddKonturaModal({
                 {c.label}
                 {c.unit ? <span className="text-muted/70"> [{c.unit}]</span> : null}
               </span>
-              <input
-                ref={c.key === focusKey ? focusFieldRef : undefined}
-                autoFocus={c.key === focusKey}
-                type={c.type === "number" ? "number" : "text"}
-                step="any"
-                list={c.key === "kontura" ? listId : undefined}
-                value={draft[c.key] === null || draft[c.key] === undefined ? "" : draft[c.key]!}
-                onChange={(e) => setField(c.key, e.target.value, c.type)}
-                placeholder={c.type === "number" ? "0" : "—"}
-                className="w-full rounded border border-border bg-transparent px-2 py-1.5 outline-none focus:border-accent"
-              />
+              {c.type === "select" ? (
+                <select
+                  value={draft[c.key] === null || draft[c.key] === undefined ? "" : String(draft[c.key])}
+                  onChange={(e) => setField(c.key, e.target.value, c.type)}
+                  className="w-full rounded border border-border bg-transparent px-2 py-1.5 outline-none focus:border-accent"
+                >
+                  <option value="" disabled>
+                    —
+                  </option>
+                  {c.options?.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  ref={c.key === focusKey ? focusFieldRef : undefined}
+                  autoFocus={c.key === focusKey}
+                  type={c.type === "number" ? "number" : "text"}
+                  step="any"
+                  list={c.key === "kontura" ? listId : undefined}
+                  value={draft[c.key] === null || draft[c.key] === undefined ? "" : draft[c.key]!}
+                  onChange={(e) => setField(c.key, e.target.value, c.type)}
+                  placeholder={c.type === "number" ? "0" : "—"}
+                  className="w-full rounded border border-border bg-transparent px-2 py-1.5 outline-none focus:border-accent"
+                />
+              )}
             </label>
           ))}
         </div>
