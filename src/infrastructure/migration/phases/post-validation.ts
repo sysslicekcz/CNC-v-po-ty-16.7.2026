@@ -85,7 +85,7 @@ export async function runPostValidationPhase(
   // Výchozí postup: každý migrovaný Part má právě jeden isDefault RoutingSheet.
   let defaultRoutingSheetOk = 0;
   for (const [legacyPartId, newPartId] of context.partIdMap) {
-    const routingSheets = await repos.routingSheets.findByPartId(newPartId);
+    const routingSheets = await repos.routingSheets.listByPartId(DEFAULT_TENANT_ID, newPartId);
     const defaults = routingSheets.filter((rs) => rs.isDefault);
     if (defaults.length === 1) {
       defaultRoutingSheetOk++;

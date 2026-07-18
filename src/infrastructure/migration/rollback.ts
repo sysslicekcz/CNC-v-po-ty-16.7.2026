@@ -34,7 +34,7 @@ export async function rollbackMigrationRun(migrationRunId: string): Promise<Reco
   const routingSheetRecords = await tpvGetAll<RoutingSheetRecord>("tpvRoutingSheets");
   const routingSheetsToDelete = routingSheetRecords.filter((r) => r.migrationRunId === migrationRunId);
   for (const record of routingSheetsToDelete) {
-    await routingSheetRepo.delete(record.id);
+    await routingSheetRepo.delete(record.id, record.tenantId);
   }
   deleted.tpvRoutingSheets = routingSheetsToDelete.length;
 

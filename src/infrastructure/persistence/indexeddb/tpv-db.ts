@@ -5,7 +5,7 @@
 // při upgrade schématu.
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export type TpvStoreName =
   | "tpvCustomers"
@@ -34,7 +34,8 @@ export type TpvStoreName =
   | "tpvExternalSystems"
   | "tpvExternalReferences"
   | "tpvIntegrationRuns"
-  | "tpvIntegrationIssues";
+  | "tpvIntegrationIssues"
+  | "tpvReleasedRoutingSheetSnapshots";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -205,6 +206,25 @@ function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction)
     const integrationIssues = db.createObjectStore("tpvIntegrationIssues", { keyPath: "id" });
     integrationIssues.createIndex("tenantId", "tenantId");
     integrationIssues.createIndex("integrationRunId", "integrationRunId");
+  }
+
+  if (oldVersion < 4) {
+    // Krok 4 - editor technologického postupu. `tpvRoutingSheets` dostává
+    // `tenantId` (viz docs/audits/step-4-audit.md - RoutingSheet byl dosud bez
+    // tenant scope) a nový store pro immutable release projekci (zadání bod 52) -
+    // `tpvOperations`/`tpvPositions`/`tpvActivities`/`tpvCalculations` zůstávají
+    // BEZ vlastního tenantId indexu, izolace se hlídá na RoutingSheet rootu.
+    const routingSheetsStore = upgradeTx.objectStore("tpvRoutingSheets");
+    if (!routingSheetsStore.indexNames.contains("tenantId")) {
+      routingSheetsStore.createIndex("tenantId", "tenantId");
+    }
+    if (!routingSheetsStore.indexNames.contains("tenantId_partId")) {
+      routingSheetsStore.createIndex("tenantId_partId", ["tenantId", "partId"]);
+    }
+
+    const releasedSnapshots = db.createObjectStore("tpvReleasedRoutingSheetSnapshots", { keyPath: "routingSheetId" });
+    releasedSnapshots.createIndex("tenantId", "tenantId");
+    releasedSnapshots.createIndex("partId", "partId");
   }
 }
 

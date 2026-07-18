@@ -5,28 +5,41 @@ import { InvalidStateError } from "../../errors/invalid-state-error";
 import { SortKey } from "../../value-objects/sort-key";
 import { OperationNumber } from "../../value-objects/operation-number";
 import { DomainEvent } from "../../events/domain-event";
-import { Operation, NewOperationInput } from "./operation";
+import { Operation, NewOperationInput, OperationResourceAssignment } from "./operation";
 import { Position, NewPositionInput } from "./position";
 import { Activity, NewActivityInput, RecordCalculationInput } from "./activity";
 import { Calculation } from "./calculation";
 
 export type RoutingSheetStav = "draft" | "released" | "archived";
-// Připraveno na budoucí rozšíření o "review" | "approved" | "obsolete" (viz zadání,
-// bod 6) - přidání další hodnoty je aditivní změna typu, ne přestavba modelu.
+// "archived" odpovídá pojmu "obsolete" ze zadání Kroku 4 - stejný význam
+// (historická revize, která už není aktuální), zachován existující český název
+// místo zavádění paralelní hodnoty (zadání Krok 4, bod 3: "pokud doména používá
+// jiné názvy, zachovej její konzistenci").
 
 export interface RoutingSheetProps {
   id: string;
+  tenantId: string;
   partId: string;
   nazev: string;
+  popis?: string;
   verze: string;
   stav: RoutingSheetStav;
   createdAt: number;
+  createdBy?: string;
   updatedAt?: number;
+  updatedBy?: string;
   isDefault?: boolean;
-  /** Self-reference na verzi, ze které tenhle postup vznikl (revizní workflow) -
-   *  vyplňuje budoucí ReviseRoutingSheetUseCase, dnes se jen rezervuje místo. */
+  /** Self-reference na verzi, ze které tenhle postup vznikl (revizní workflow,
+   *  odpovídá `sourceRoutingSheetId` ze zadání Kroku 4 - jméno zachováno z
+   *  Kroku 2). Vyplňuje CreateRoutingSheetRevisionUseCase/DuplicateRoutingSheetUseCase. */
   previousVersionId?: string;
   releasedAt?: number;
+  releasedBy?: string;
+}
+
+export interface UpdateRoutingSheetHeaderInput {
+  nazev?: string;
+  popis?: string;
 }
 
 const OPERATION_NUMBER_STEP = 10;
@@ -56,6 +69,7 @@ export class RoutingSheet {
   private constructor(private props: RoutingSheetProps) {}
 
   static create(props: RoutingSheetProps): RoutingSheet {
+    if (!props.tenantId.trim()) throw new ValidationError("RoutingSheet: 'tenantId' nesmí být prázdné.");
     if (!props.partId.trim()) throw new ValidationError("RoutingSheet: 'partId' nesmí být prázdné.");
     if (!props.nazev.trim()) throw new ValidationError("RoutingSheet: 'nazev' nesmí být prázdný.");
     return new RoutingSheet({ ...props });
@@ -72,14 +86,26 @@ export class RoutingSheet {
   get id(): string {
     return this.props.id;
   }
+  get tenantId(): string {
+    return this.props.tenantId;
+  }
   get partId(): string {
     return this.props.partId;
   }
   get nazev(): string {
     return this.props.nazev;
   }
+  get popis(): string | undefined {
+    return this.props.popis;
+  }
   get verze(): string {
     return this.props.verze;
+  }
+  /** Číselná podoba `verze` pro editor DTO (`revision` v zadání Kroku 4) -
+   *  `verze` v doméně zůstává string (viz docs/audits/step-4-audit.md). */
+  get revisionNumber(): number {
+    const parsed = Number.parseInt(this.props.verze, 10);
+    return Number.isFinite(parsed) ? parsed : 1;
   }
   get stav(): RoutingSheetStav {
     return this.props.stav;
@@ -87,8 +113,14 @@ export class RoutingSheet {
   get createdAt(): number {
     return this.props.createdAt;
   }
+  get createdBy(): string | undefined {
+    return this.props.createdBy;
+  }
   get updatedAt(): number | undefined {
     return this.props.updatedAt;
+  }
+  get updatedBy(): string | undefined {
+    return this.props.updatedBy;
   }
   get isDefault(): boolean {
     return this.props.isDefault ?? false;
@@ -98,6 +130,13 @@ export class RoutingSheet {
   }
   get releasedAt(): number | undefined {
     return this.props.releasedAt;
+  }
+  get releasedBy(): string | undefined {
+    return this.props.releasedBy;
+  }
+
+  get isEditable(): boolean {
+    return this.props.stav === "draft";
   }
 
   /** Seřazené podle sortKey. */
@@ -109,6 +148,28 @@ export class RoutingSheet {
     const operation = this.operations.find((o) => o.id === operationId);
     if (!operation) throw new NotFoundError("Operation", operationId);
     return operation;
+  }
+
+  // --- Hlavička ---
+
+  updateHeader(input: UpdateRoutingSheetHeaderInput): void {
+    this.assertEditable();
+    if (input.nazev !== undefined) {
+      if (!input.nazev.trim()) throw new ValidationError("RoutingSheet: 'nazev' nesmí být prázdný.");
+      this.props.nazev = input.nazev;
+    }
+    if (input.popis !== undefined) {
+      this.props.popis = input.popis;
+    }
+  }
+
+  /** Aktualizuje `updatedAt`/`updatedBy` - volá ho SaveRoutingSheetDraftUseCase
+   *  před zápisem, ne repository (bookkeeping je součástí explicitní aplikační
+   *  operace "uložit", ne skrytý vedlejší efekt persistence). */
+  touch(updatedAt: Date, updatedBy?: string): void {
+    this.assertEditable();
+    this.props.updatedAt = updatedAt.getTime();
+    this.props.updatedBy = updatedBy;
   }
 
   // --- Operation ---
@@ -128,10 +189,21 @@ export class RoutingSheet {
       nazev: input.nazev,
       stav: "aktivni",
       machineId: input.machineId,
+      externalResourceId: input.externalResourceId,
       technologickaPoznamka: input.technologickaPoznamka,
     });
     this.operations.push(operation);
     this.raise({ type: "OperationAdded", aggregateId: this.props.id, occurredAt: new Date() });
+    return operation;
+  }
+
+  /** Vloží kopii existující operace (nové id, bez upnutí/činností/kalkulací dokud
+   *  je nepřidá `duplicatePosition`/vlastní kopírovací use case) - viz
+   *  DuplicateRoutingOperationUseCase, který nad touhle metodou postaví plnou
+   *  kopii včetně podstromu. */
+  addOperationAfter(input: NewOperationInput, afterOperationId: string | null): Operation {
+    const operation = this.addOperation(input);
+    this.reorderOperations(operation.id, afterOperationId);
     return operation;
   }
 
@@ -167,10 +239,56 @@ export class RoutingSheet {
     this.operations = this.operations.filter((o) => o.id !== operationId);
   }
 
+  updateOperation(
+    operationId: string,
+    input: {
+      nazev?: string;
+      technologickaPoznamka?: string;
+      setupTimeMinutes?: number;
+      unitTimeMinutes?: number;
+      transferBatchSize?: number;
+    }
+  ): void {
+    this.assertEditable();
+    const operation = this.getOperation(operationId);
+    if (input.nazev !== undefined) operation.rename(input.nazev);
+    if (input.technologickaPoznamka !== undefined) operation.setNote(input.technologickaPoznamka);
+    if (input.setupTimeMinutes !== undefined || input.unitTimeMinutes !== undefined) {
+      operation.setTimes({ setupTimeMinutes: input.setupTimeMinutes, unitTimeMinutes: input.unitTimeMinutes });
+    }
+    if (input.transferBatchSize !== undefined) operation.setTransferBatchSize(input.transferBatchSize);
+  }
+
   assignMachineToOperation(operationId: string, machineId: string | undefined): void {
     this.assertEditable();
     this.getOperation(operationId).assignMachine(machineId);
     this.raise({ type: "MachineAssignedToOperation", aggregateId: this.props.id, occurredAt: new Date() });
+  }
+
+  assignExternalResourceToOperation(operationId: string, externalResourceId: string | undefined): void {
+    this.assertEditable();
+    this.getOperation(operationId).assignExternalResource(externalResourceId);
+    this.raise({ type: "ExternalResourceAssignedToOperation", aggregateId: this.props.id, occurredAt: new Date() });
+  }
+
+  /** Nastaví zdroj operace atomicky (viz OperationResourceAssignment) - jediný
+   *  vstupní bod, kterým UI nikdy nemůže vytvořit neplatný mezistav "stroj i
+   *  kooperace zapsané současně". */
+  assignResourceToOperation(operationId: string, assignment: OperationResourceAssignment): void {
+    this.assertEditable();
+    const operation = this.getOperation(operationId);
+    switch (assignment.type) {
+      case "machine":
+        operation.assignMachine(assignment.machineId);
+        break;
+      case "external":
+        operation.assignExternalResource(assignment.externalResourceId);
+        break;
+      case "unassigned":
+        operation.assignMachine(undefined);
+        operation.assignExternalResource(undefined);
+        break;
+    }
   }
 
   // --- Position (musí patřit existující Operation) ---
@@ -180,6 +298,16 @@ export class RoutingSheet {
     this.assertIdIsFree(input.id);
     const operation = this.getOperation(operationId); // NotFoundError => zákaz vložení Position mimo Operation
     return operation.addPosition(input);
+  }
+
+  movePosition(operationId: string, positionId: string, afterPositionId: string | null): void {
+    this.assertEditable();
+    this.getOperation(operationId).movePosition(positionId, afterPositionId);
+  }
+
+  renamePosition(operationId: string, positionId: string, nazev: string): void {
+    this.assertEditable();
+    this.getOperation(operationId).getPosition(positionId).rename(nazev);
   }
 
   removePosition(operationId: string, positionId: string): void {
@@ -240,19 +368,41 @@ export class RoutingSheet {
     return this.getOperation(operationId).getPosition(positionId).getActivity(activityId).applyManualCorrection(minutes);
   }
 
-  // --- Revizní workflow (minimální pravidla, viz zadání bod 16) ---
+  // --- Revizní workflow (zadání Krok 4, bod 4) ---
 
   /** draft -> released. Vydaný postup nelze běžně upravovat (assertEditable to
-   *  vynucuje pro všechny mutační metody výše). Kompletní klonování revize
-   *  (ReviseRoutingSheetUseCase) není v tomto kroku implementované - jen pole
-   *  previousVersionId/releasedAt jsou připravená. */
-  release(releasedAt: Date): void {
+   *  vynucuje pro všechny mutační metody výše). Skutečná release VALIDACE
+   *  (musí mít aspoň jednu operaci, každá operace má zdroj atd.) je odpovědnost
+   *  Application vrstvy (ReleaseRoutingSheetUseCase/ValidateRoutingSheetUseCase),
+   *  ne téhle metody - agregát sám jen vynucuje stavový přechod. */
+  release(releasedAt: Date, releasedBy?: string): void {
     if (this.props.stav !== "draft") {
       throw new InvalidStateError(`Nelze vydat postup ve stavu "${this.props.stav}" - vydat lze jen draft.`);
     }
     this.props.stav = "released";
     this.props.releasedAt = releasedAt.getTime();
+    this.props.releasedBy = releasedBy;
     this.raise({ type: "RoutingSheetReleased", aggregateId: this.props.id, occurredAt: releasedAt });
+  }
+
+  /** released/draft -> archived - historická revize, která už není aktuální
+   *  (nahrazena novou revizí). Archivace nikdy nemaže data, jen mění `stav` -
+   *  viz docs/adr/released-routing-sheet-is-immutable.md. */
+  archive(): void {
+    if (this.props.stav === "archived") {
+      throw new InvalidStateError("Postup je už archivovaný.");
+    }
+    this.props.stav = "archived";
+    this.raise({ type: "RoutingSheetArchived", aggregateId: this.props.id, occurredAt: new Date() });
+  }
+
+  /** Zruší příznak "výchozí" (Krok 4) - volá se na STARÉ revizi při vzniku
+   *  nové (`CreateRoutingSheetRevisionUseCase`), aby měl díl vždy nejvýš
+   *  jednu výchozí RoutingSheet (invariant hlídaný i migrací, viz
+   *  post-validation.ts "exactly-one-default-routing-sheet-per-part").
+   *  Bez guardu na `stav` - jde o bookkeeping, ne o obsahovou úpravu. */
+  clearDefault(): void {
+    this.props.isDefault = false;
   }
 
   private assertEditable(): void {

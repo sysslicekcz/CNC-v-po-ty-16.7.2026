@@ -6,6 +6,7 @@ import { deleteTpvDbForTests } from "../tpv-db";
 function buildRoutingSheet(id: string, partId: string): RoutingSheet {
   const rs = RoutingSheet.create({
     id,
+    tenantId: "tenant:test",
     partId,
     nazev: "Výchozí technologický postup",
     verze: "1",
@@ -50,7 +51,7 @@ describe("IndexedDbRoutingSheetRepository", () => {
     const original = buildRoutingSheet("rs-a", "part-a");
     await repo.save(original);
 
-    const loaded = await repo.findById("rs-a");
+    const loaded = await repo.findById("rs-a", "tenant:test");
     expect(loaded).not.toBeNull();
     expect(loaded!.operationList).toHaveLength(2);
     expect(loaded!.operationList[1].positionList[0].activityList).toHaveLength(2);
@@ -61,7 +62,7 @@ describe("IndexedDbRoutingSheetRepository", () => {
     const original = buildRoutingSheet("rs-b", "part-b");
     await repo.save(original);
 
-    const loaded = await repo.findById("rs-b");
+    const loaded = await repo.findById("rs-b", "tenant:test");
     expect(loaded!.operationList.map((o) => o.id)).toEqual(["rs-b-op-1", "rs-b-op-2"]);
     expect(loaded!.operationList[1].positionList[0].activityList.map((a) => a.id)).toEqual([
       "rs-b-act-1",
@@ -74,7 +75,7 @@ describe("IndexedDbRoutingSheetRepository", () => {
     const original = buildRoutingSheet("rs-c", "part-c");
     await repo.save(original);
 
-    const loaded = await repo.findById("rs-c");
+    const loaded = await repo.findById("rs-c", "tenant:test");
     const activity = loaded!.operationList[1].positionList[0].activityList[0];
     expect(activity.calculation).toBeDefined();
     expect(activity.calculation!.finalTime).toBe(2.5);
@@ -85,11 +86,11 @@ describe("IndexedDbRoutingSheetRepository", () => {
     const original = buildRoutingSheet("rs-d", "part-d");
     await repo.save(original);
 
-    const loaded = await repo.findById("rs-d");
+    const loaded = await repo.findById("rs-d", "tenant:test");
     loaded!.removeActivity("rs-d-op-2", "rs-d-pos-1", "rs-d-act-2");
     await repo.save(loaded!);
 
-    const reloaded = await repo.findById("rs-d");
+    const reloaded = await repo.findById("rs-d", "tenant:test");
     expect(reloaded!.operationList[1].positionList[0].activityList.map((a) => a.id)).toEqual(["rs-d-act-1"]);
   });
 
@@ -100,33 +101,33 @@ describe("IndexedDbRoutingSheetRepository", () => {
     await repo.save(rsE);
     await repo.save(rsF);
 
-    const loadedE = await repo.findById("rs-e");
+    const loadedE = await repo.findById("rs-e", "tenant:test");
     loadedE!.removeActivity("rs-e-op-2", "rs-e-pos-1", "rs-e-act-2");
     await repo.save(loadedE!);
 
-    const reloadedF = await repo.findById("rs-f");
+    const reloadedF = await repo.findById("rs-f", "tenant:test");
     expect(reloadedF!.operationList[1].positionList[0].activityList).toHaveLength(2);
   });
 
-  it("findByPartId vrátí jen postupy daného dílu", async () => {
+  it("listByPartId vrátí jen postupy daného dílu", async () => {
     const repo = new IndexedDbRoutingSheetRepository();
     await repo.save(buildRoutingSheet("rs-g", "part-shared"));
     await repo.save(buildRoutingSheet("rs-h", "part-other"));
 
-    const forShared = await repo.findByPartId("part-shared");
+    const forShared = await repo.listByPartId("tenant:test", "part-shared");
     expect(forShared.map((rs) => rs.id)).toEqual(["rs-g"]);
   });
 
   it("delete odstraní celý strom", async () => {
     const repo = new IndexedDbRoutingSheetRepository();
     await repo.save(buildRoutingSheet("rs-i", "part-i"));
-    await repo.delete("rs-i");
+    await repo.delete("rs-i", "tenant:test");
 
-    expect(await repo.findById("rs-i")).toBeNull();
+    expect(await repo.findById("rs-i", "tenant:test")).toBeNull();
   });
 
   it("findById vrací null pro neexistující id", async () => {
     const repo = new IndexedDbRoutingSheetRepository();
-    expect(await repo.findById("neexistuje")).toBeNull();
+    expect(await repo.findById("neexistuje", "tenant:test")).toBeNull();
   });
 });

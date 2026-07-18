@@ -5,6 +5,7 @@ import { routingSheetToRecordSet, routingSheetFromRecordSet } from "./routing-sh
 function buildSampleRoutingSheet(): RoutingSheet {
   const rs = RoutingSheet.create({
     id: "rs-1",
+    tenantId: "tenant:test",
     partId: "part-1",
     nazev: "Výchozí technologický postup",
     verze: "1",
@@ -69,6 +70,7 @@ describe("routing-sheet-mapper", () => {
   it("chybějící volitelná pole se po round-tripu načtou jako undefined, ne jako chyba", () => {
     const rs = RoutingSheet.create({
       id: "rs-2",
+      tenantId: "tenant:test",
       partId: "part-2",
       nazev: "Minimální postup",
       verze: "1",

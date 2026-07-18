@@ -17,8 +17,9 @@ export interface NewPositionInput {
 /** Jedno fyzické upnutí dílu v rámci Operation - sdružuje technologické činnosti
  *  (Activity) provedené v tomto upnutí. Nenese odkaz na Operation - je to vnořená
  *  entita (viz aggregates/routing-sheet/operation.ts). `sortKey` je volitelný -
- *  pokud upnutí v UI zatím nemají měnitelné pořadí, pole existuje připravené, ale
- *  nemusí být aktivně používané (viz zadání, bod 6). */
+ *  legacy upnutí migrovaná před Krokem 4 ho nemají (viz Operation.positionList),
+ *  nová upnutí (Operation.addPosition) ho vždy dostanou, protože Krok 4 zavádí
+ *  skutečné přeuspořádání upnutí v editoru. */
 export class Position {
   private activities: Activity[] = [];
 
@@ -48,6 +49,15 @@ export class Position {
   /** Seřazené podle sortKey, pokud ho Activity mají; jinak v pořadí přidání. */
   get activityList(): readonly Activity[] {
     return [...this.activities].sort((a, b) => a.sortKey.compareTo(b.sortKey));
+  }
+
+  rename(nazev: string): void {
+    if (!nazev.trim()) throw new ValidationError("Position: 'nazev' nesmí být prázdný.");
+    this.props.nazev = nazev;
+  }
+
+  setSortKey(sortKey: SortKey): void {
+    this.props.sortKey = sortKey;
   }
 
   getActivity(activityId: string): Activity {

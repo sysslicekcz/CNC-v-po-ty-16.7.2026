@@ -14,12 +14,15 @@ const DEFAULT_LICENSE_PLAN_CODE = "local-default";
  * bod 26/10) - read-before-write, nic nemaže ani nepřepisuje existující
  * odlišný stav (např. ručně pozastavený tenant zůstane pozastavený).
  *
- * Licence odpovídá tomu, co appka DNES fakticky umí (prohlížení/editace
- * postupů, základní kalkulace, správa strojů a nástrojů) - ne budoucím
- * modulům, které appka ještě nemá v UI (plánování, Helios integrace,
- * kooperace, capacity groups): ty licence záměrně neuvádí, takže
- * FeatureAccessService pro ně vrátí "none", dokud nebudou skutečně
- * implementované a licenčně zpřístupněné.
+ * Licence odpovídá tomu, co appka DNES fakticky umí (prohlížení/editace/vydání
+ * postupů, základní kalkulace, správa strojů a nástrojů, zobrazení kooperací) -
+ * ne budoucím modulům, které appka ještě nemá v UI (plánování, ERP integrace,
+ * capacity groups, pokročilé kalkulace, správa kooperací): ty licence záměrně
+ * neuvádí, takže FeatureAccessService pro ně vrátí "none", dokud nebudou
+ * skutečně implementované a licenčně zpřístupněné. `routing.release` a
+ * `cooperations.view` byly doplněny v Kroku 4 (editor technologického postupu) -
+ * bez nich by čerstvá instalace appky nikdy nemohla vydat postup ani vybrat
+ * kooperaci jako zdroj operace, viz docs/audits/step-4-audit.md.
  */
 export async function ensureDefaultTenantAndLicense(): Promise<void> {
   const tenants = new IndexedDbTenantRepository();
@@ -49,11 +52,13 @@ export async function ensureDefaultTenantAndLicense(): Promise<void> {
         features: [
           { code: FeatureCodes.RoutingView, access: "full" },
           { code: FeatureCodes.RoutingEdit, access: "full" },
+          { code: FeatureCodes.RoutingRelease, access: "full" },
           { code: FeatureCodes.CalculationsBasic, access: "full" },
           { code: FeatureCodes.MachinesView, access: "full" },
           { code: FeatureCodes.MachinesManage, access: "full" },
           { code: FeatureCodes.ToolsView, access: "full" },
           { code: FeatureCodes.ToolsManage, access: "full" },
+          { code: FeatureCodes.CooperationsView, access: "full" },
         ],
         limits: [],
         issuedAt: new Date().toISOString(),

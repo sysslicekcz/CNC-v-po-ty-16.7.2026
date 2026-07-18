@@ -80,7 +80,11 @@ export function routingSheetToRecordSet(
       nazev: operation.nazev,
       stav: operation.stav,
       machineId: operation.machineId,
+      externalResourceId: operation.externalResourceId,
       technologickaPoznamka: operation.technologickaPoznamka,
+      setupTimeMinutes: operation.setupTimeMinutes,
+      unitTimeMinutes: operation.unitTimeMinutes,
+      transferBatchSize: operation.transferBatchSize,
       ...stampFor(operation.id),
     });
 
@@ -116,15 +120,20 @@ export function routingSheetToRecordSet(
 
   const routingSheetRecord: RoutingSheetRecord = {
     id: routingSheet.id,
+    tenantId: routingSheet.tenantId,
     partId: routingSheet.partId,
     nazev: routingSheet.nazev,
+    popis: routingSheet.popis,
     verze: routingSheet.verze,
     stav: routingSheet.stav,
     createdAt: routingSheet.createdAt,
+    createdBy: routingSheet.createdBy,
     updatedAt: routingSheet.updatedAt,
+    updatedBy: routingSheet.updatedBy,
     isDefault: routingSheet.isDefault,
     previousVersionId: routingSheet.previousVersionId,
     releasedAt: routingSheet.releasedAt,
+    releasedBy: routingSheet.releasedBy,
     ...stampFor(routingSheet.id),
   };
 
@@ -184,7 +193,11 @@ export function routingSheetFromRecordSet(recordSet: RoutingSheetRecordSet): Rou
         nazev: opRecord.nazev,
         stav: parseEntityStav(opRecord.stav, "Operation"),
         machineId: opRecord.machineId,
+        externalResourceId: opRecord.externalResourceId,
         technologickaPoznamka: opRecord.technologickaPoznamka,
+        setupTimeMinutes: opRecord.setupTimeMinutes,
+        unitTimeMinutes: opRecord.unitTimeMinutes,
+        transferBatchSize: opRecord.transferBatchSize,
       },
       positionsByOperationId.get(opRecord.id) ?? []
     )
@@ -193,15 +206,20 @@ export function routingSheetFromRecordSet(recordSet: RoutingSheetRecordSet): Rou
   return RoutingSheet.restore(
     {
       id: recordSet.routingSheet.id,
+      tenantId: recordSet.routingSheet.tenantId,
       partId: recordSet.routingSheet.partId,
       nazev: recordSet.routingSheet.nazev,
+      popis: recordSet.routingSheet.popis,
       verze: recordSet.routingSheet.verze,
       stav: parseRoutingSheetStav(recordSet.routingSheet.stav),
       createdAt: recordSet.routingSheet.createdAt,
+      createdBy: recordSet.routingSheet.createdBy,
       updatedAt: recordSet.routingSheet.updatedAt,
+      updatedBy: recordSet.routingSheet.updatedBy,
       isDefault: recordSet.routingSheet.isDefault,
       previousVersionId: recordSet.routingSheet.previousVersionId,
       releasedAt: recordSet.routingSheet.releasedAt,
+      releasedBy: recordSet.routingSheet.releasedBy,
     },
     operations
   );

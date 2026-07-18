@@ -1,4 +1,5 @@
 import { RoutingSheet } from "@/domain/aggregates/routing-sheet/routing-sheet";
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 import { IndexedDbRoutingSheetRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-routing-sheet-repository";
 import { routingSheetToRecordSet } from "@/infrastructure/persistence/indexeddb/mappers/routing-sheet-mapper";
 import { LegacyStamp } from "@/infrastructure/persistence/indexeddb/mappers/common";
@@ -47,8 +48,33 @@ export async function runMigrateRoutingDataPhase(
 
   for (const [legacyPartId, newPartId] of context.partIdMap) {
     const routingSheetId = deterministicId("routing-sheet", legacyPartId);
+
+    // Bezpečný opakovaný běh (Krok 4): dřív se sem vždycky zapsal ČERSTVÝ
+    // draft bez ohledu na to, co s ním technolog mezitím udělal (vydal,
+    // archivoval, založil další revize) - deterministické ID sice dovolovalo
+    // najít "tu samou" RoutingSheet napříč běhy, ale bezpodmínečné přepsání by
+    // při dalším běhu migrace tiše zahodilo celou revizní historii vzniklou
+    // v editoru (porušení "žádné destruktivní migrace"). Pokud pro díl už
+    // RoutingSheet existuje, migrace ji nechá být - nepřidá ji do
+    // `routingSheetIdMap`, takže ji ani `post-validation` nebude porovnávat
+    // proti (možná už neaktuálním) legacy datům.
+    const existing = await routingSheetRepository.findById(routingSheetId, DEFAULT_TENANT_ID);
+    if (existing) {
+      context.incrementCounter("skipped", "routingSheets");
+      context.addIssue({
+        severity: "info",
+        phase: "migrate-routing-data",
+        code: "routing-sheet-already-migrated",
+        message: `Technologický postup pro díl (legacy "${legacyPartId}") už existuje - migrace ho nepřepsala.`,
+        legacySource: "parts",
+        legacyId: legacyPartId,
+      });
+      continue;
+    }
+
     const routingSheet = RoutingSheet.create({
       id: routingSheetId,
+      tenantId: DEFAULT_TENANT_ID,
       partId: newPartId,
       nazev: "Výchozí technologický postup",
       verze: "1",

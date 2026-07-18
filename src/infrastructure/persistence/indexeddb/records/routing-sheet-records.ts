@@ -1,4 +1,5 @@
 import { LegacyMetadata } from "./legacy-metadata";
+import { ReleasedRoutingSheetSnapshot } from "@/domain/aggregates/routing-sheet/released-snapshot";
 
 /**
  * Normalizované persistence records pro RoutingSheet agregát (zadání, bod 6-7).
@@ -12,15 +13,20 @@ import { LegacyMetadata } from "./legacy-metadata";
 
 export interface RoutingSheetRecord extends LegacyMetadata {
   id: string;
+  tenantId: string;
   partId: string;
   nazev: string;
+  popis?: string;
   verze: string;
   stav: string;
   createdAt: number;
+  createdBy?: string;
   updatedAt?: number;
+  updatedBy?: string;
   isDefault?: boolean;
   previousVersionId?: string;
   releasedAt?: number;
+  releasedBy?: string;
 }
 
 export interface OperationRecord extends LegacyMetadata {
@@ -31,7 +37,11 @@ export interface OperationRecord extends LegacyMetadata {
   nazev: string;
   stav: string;
   machineId?: string;
+  externalResourceId?: string;
   technologickaPoznamka?: string;
+  setupTimeMinutes?: number;
+  unitTimeMinutes?: number;
+  transferBatchSize?: number;
 }
 
 export interface PositionRecord extends LegacyMetadata {
@@ -104,3 +114,9 @@ export interface CalculationRecord extends LegacyMetadata {
   manualCorrection?: number;
   calculatedAt?: number;
 }
+
+/** Stejný tvar jako doménový `ReleasedRoutingSheetSnapshot` - žádné Value Objecty
+ *  ani chování k mapování, jen zamrzlá čitelná data (zadání bod 52), takže se
+ *  neduplikuje samostatný Record typ + no-op mapper jen kvůli konvenci - viz
+ *  `IndexedDbReleasedRoutingSheetSnapshotRepository`. */
+export type ReleasedRoutingSheetSnapshotRecord = ReleasedRoutingSheetSnapshot;

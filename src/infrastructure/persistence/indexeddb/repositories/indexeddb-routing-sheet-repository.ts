@@ -94,20 +94,47 @@ function legacyStampsFromRecordSet(recordSet: RoutingSheetRecordSet): Map<string
  * RoutingSheet a zapisuje aktuální - jednodušší a stejně korektní jako přesný
  * diff, a nikdy se nedotkne záznamů patřících jiné RoutingSheet (dotazuje se
  * vždy jen podle FK odvozených z `routingSheetId`).
+ *
+ * Tenant-scoped (Krok 4) - `findById`/`delete` vždy ověří shodu `tenantId` na
+ * root záznamu (stejný vzor jako IndexedDbMachineRepository, viz docs/adr/0019).
+ * Operation/Position/Activity/Calculation nemají vlastní tenantId - izolace se
+ * hlídá jen na rootu, protože k nim se lze dostat výhradně přes RoutingSheet.id.
  */
 export class IndexedDbRoutingSheetRepository implements RoutingSheetRepository {
-  async findById(id: string): Promise<RoutingSheet | null> {
+  async findById(id: string, tenantId: string): Promise<RoutingSheet | null> {
     const db = await openTpvDb();
     const tx = db.transaction(TREE_STORES, "readonly");
     const recordSet = await readRecordSetInTx(tx, id);
-    return recordSet ? routingSheetFromRecordSet(recordSet) : null;
+    if (!recordSet || recordSet.routingSheet.tenantId !== tenantId) return null;
+    return routingSheetFromRecordSet(recordSet);
   }
 
-  async findByPartId(partId: string): Promise<RoutingSheet[]> {
-    const roots = await tpvGetAllByIndex<RoutingSheetRecord>("tpvRoutingSheets", "partId", partId);
+  async listByPartId(tenantId: string, partId: string): Promise<RoutingSheet[]> {
+    const roots = await tpvGetAllByIndex<RoutingSheetRecord>("tpvRoutingSheets", "tenantId_partId", [tenantId, partId]);
     const results: RoutingSheet[] = [];
     for (const root of roots) {
-      const routingSheet = await this.findById(root.id);
+      const routingSheet = await this.findById(root.id, tenantId);
+      if (routingSheet) results.push(routingSheet);
+    }
+    return results;
+  }
+
+  async findDraftByPartId(tenantId: string, partId: string): Promise<RoutingSheet | null> {
+    const sheets = await this.listByPartId(tenantId, partId);
+    return sheets.find((rs) => rs.stav === "draft") ?? null;
+  }
+
+  async getNextRevisionNumber(tenantId: string, partId: string): Promise<number> {
+    const sheets = await this.listByPartId(tenantId, partId);
+    if (sheets.length === 0) return 1;
+    return Math.max(...sheets.map((rs) => rs.revisionNumber)) + 1;
+  }
+
+  async list(tenantId: string): Promise<RoutingSheet[]> {
+    const roots = await tpvGetAllByIndex<RoutingSheetRecord>("tpvRoutingSheets", "tenantId", tenantId);
+    const results: RoutingSheet[] = [];
+    for (const root of roots) {
+      const routingSheet = await this.findById(root.id, tenantId);
       if (routingSheet) results.push(routingSheet);
     }
     return results;
@@ -143,10 +170,14 @@ export class IndexedDbRoutingSheetRepository implements RoutingSheetRepository {
     await commitTransaction(tx);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, tenantId: string): Promise<void> {
     const db = await openTpvDb();
     const tx = db.transaction(TREE_STORES, "readwrite");
     const existing = await readRecordSetInTx(tx, id);
+    if (existing && existing.routingSheet.tenantId !== tenantId) {
+      await commitTransaction(tx);
+      return;
+    }
     if (existing) {
       for (const r of existing.calculations) await deleteInTx(tx, "tpvCalculations", r.id);
       for (const r of existing.activities) await deleteInTx(tx, "tpvActivities", r.id);

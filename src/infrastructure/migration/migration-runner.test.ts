@@ -4,6 +4,7 @@ import { rollbackMigrationRun } from "./rollback";
 import { LegacySourceData } from "./legacy-source";
 import { deleteTpvDbForTests, tpvGetAll } from "@/infrastructure/persistence/indexeddb/tpv-db";
 import { IndexedDbRoutingSheetRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-routing-sheet-repository";
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 import { CustomerRecord, OrderRecord, PartRecord, MachineCapabilityRecord, ToolRecord } from "@/infrastructure/persistence/indexeddb/records";
 
 function emptyLegacyData(): LegacySourceData {
@@ -62,7 +63,7 @@ describe("runMigrationEngine", () => {
 
     const routingSheetRepo = new IndexedDbRoutingSheetRepository();
     const parts = await tpvGetAll<PartRecord>("tpvParts");
-    const routingSheets = await routingSheetRepo.findByPartId(parts[0].id);
+    const routingSheets = await routingSheetRepo.listByPartId(DEFAULT_TENANT_ID, parts[0].id);
     expect(routingSheets).toHaveLength(1);
     expect(routingSheets[0].isDefault).toBe(true);
     expect(routingSheets[0].operationList).toHaveLength(1);
@@ -85,7 +86,7 @@ describe("runMigrationEngine", () => {
 
     const routingSheetRepo = new IndexedDbRoutingSheetRepository();
     const parts = await tpvGetAll<PartRecord>("tpvParts");
-    const [routingSheet] = await routingSheetRepo.findByPartId(parts[0].id);
+    const [routingSheet] = await routingSheetRepo.listByPartId(DEFAULT_TENANT_ID, parts[0].id);
     expect(routingSheet.operationList).toHaveLength(2);
     expect(routingSheet.operationList[0].positionList).toHaveLength(1);
     expect(routingSheet.operationList[1].positionList).toHaveLength(1);
@@ -106,7 +107,7 @@ describe("runMigrationEngine", () => {
 
     const routingSheetRepo = new IndexedDbRoutingSheetRepository();
     const parts = await tpvGetAll<PartRecord>("tpvParts");
-    const [routingSheet] = await routingSheetRepo.findByPartId(parts[0].id);
+    const [routingSheet] = await routingSheetRepo.listByPartId(DEFAULT_TENANT_ID, parts[0].id);
     const machineIds = routingSheet.operationList.map((o) => o.machineId);
     expect(new Set(machineIds).size).toBe(2);
     const activitiesWithSameCalcType = routingSheet.operationList
@@ -141,7 +142,7 @@ describe("runMigrationEngine", () => {
 
     const routingSheetRepo = new IndexedDbRoutingSheetRepository();
     const parts = await tpvGetAll<PartRecord>("tpvParts");
-    const [routingSheet] = await routingSheetRepo.findByPartId(parts[0].id);
+    const [routingSheet] = await routingSheetRepo.listByPartId(DEFAULT_TENANT_ID, parts[0].id);
     expect(routingSheet.operationList[0].machineId).toBeUndefined();
     expect(routingSheet.operationList[0].positionList[0].activityList).toHaveLength(2);
   });
@@ -168,6 +169,25 @@ describe("runMigrationEngine", () => {
     expect(customers).toHaveLength(1);
     expect(orders).toHaveLength(1);
     expect(capabilities).toHaveLength(2); // 2 položky v machine.operace, ne zdvojnásobené
+  });
+
+  it("opakované spuštění NEPŘEPÍŠE už rozpracovanou RoutingSheet (Krok 4 - vydání/revize se migrací nesmí ztratit)", async () => {
+    const data = onePartScenario();
+    await runMigrationEngine({ legacyData: data });
+
+    const routingSheetRepo = new IndexedDbRoutingSheetRepository();
+    const parts = await tpvGetAll<PartRecord>("tpvParts");
+    const [routingSheet] = await routingSheetRepo.listByPartId(DEFAULT_TENANT_ID, parts[0].id);
+    routingSheet.updateOperation(routingSheet.operationList[0].id, { unitTimeMinutes: 5 });
+    routingSheet.release(new Date());
+    await routingSheetRepo.save(routingSheet);
+
+    const report2 = await runMigrationEngine({ legacyData: data });
+    expect(report2.skipped.routingSheets).toBe(1);
+
+    const [reloaded] = await routingSheetRepo.listByPartId(DEFAULT_TENANT_ID, parts[0].id);
+    expect(reloaded.stav).toBe("released"); // NE zpět na "draft"
+    expect(reloaded.id).toBe(routingSheet.id);
   });
 
   it("rollback odstraní jen nová data daného běhu, staré stores (legacy zdroj) zůstávají mimo dosah", async () => {
