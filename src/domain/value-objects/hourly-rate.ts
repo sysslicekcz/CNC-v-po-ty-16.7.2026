@@ -1,30 +1,39 @@
-import { ValidationError } from "../errors/validation-error";
+import { Money, SerializedMoney } from "./money";
 
-/** Hodinová sazba zdroje. Měna zatím pevně CZK (aplikace je lokální, k rozšíření
- *  na multi-měnu stačí přidat parametr - pole je tu už teď, aby to nevyžadovalo
- *  změnu tvaru dat). */
+/** Hodinová sazba stroje - tenká obálka nad Money, aby bylo v typech vidět, že jde
+ *  konkrétně o sazbu za hodinu, ne o libovolnou částku. */
 export class HourlyRate {
-  private constructor(
-    private readonly amount: number,
-    private readonly currency: string
-  ) {}
+  private constructor(private readonly money_: Money) {}
 
   static of(amount: number, currency: string = "CZK"): HourlyRate {
-    if (!Number.isFinite(amount) || amount < 0) {
-      throw new ValidationError(`Hodinová sazba nesmí být záporná, dostal jsem "${amount}".`);
-    }
-    return new HourlyRate(amount, currency);
+    return new HourlyRate(Money.of(amount, currency));
   }
 
-  get value(): number {
-    return this.amount;
+  static fromMoney(money: Money): HourlyRate {
+    return new HourlyRate(money);
   }
 
-  get currencyCode(): string {
-    return this.currency;
+  get money(): Money {
+    return this.money_;
+  }
+
+  get amount(): number {
+    return this.money_.amount;
+  }
+
+  get currency(): string {
+    return this.money_.currency;
   }
 
   toString(): string {
-    return `${this.amount} ${this.currency}/hod`;
+    return `${this.money_.toString()}/hod`;
+  }
+
+  toJSON(): SerializedMoney {
+    return this.money_.toJSON();
+  }
+
+  static fromJSON(json: SerializedMoney): HourlyRate {
+    return HourlyRate.fromMoney(Money.fromJSON(json));
   }
 }

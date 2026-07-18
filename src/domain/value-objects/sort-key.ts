@@ -9,9 +9,10 @@ function digitAt(key: string, i: number): number {
 }
 
 /** Vygeneruje base62 řetězec striktně mezi `lo` (dolní mez, "" = úplně dole) a `hi`
- *  (horní mez, null = neomezeno nahoru). Jde o zjednodušenou variantu fractional
- *  indexing (LexoRank-styl): vkládání mezi dva sousední klíče nikdy nevyžaduje
- *  přepočítat/přepsat žádný jiný záznam. */
+ *  (horní mez, null = neomezeno nahoru). Zjednodušená varianta fractional indexing
+ *  (LexoRank-styl, deterministický algoritmus) - vkládání mezi dva sousední klíče
+ *  nikdy nevyžaduje přepočítat/přepsat žádný jiný záznam. Neuchovává pořadí jako
+ *  plovoucí číslo (number) - to by se dlouhodobě vyčerpalo přesností. */
 function generateBetween(lo: string, hi: string | null): string {
   let result = "";
   let upperUnbounded = hi === null;
@@ -30,8 +31,9 @@ function generateBetween(lo: string, hi: string | null): string {
   return result + ALPHABET[1];
 }
 
-/** Stabilní řadicí klíč pro Operation/Activity - viz zadání: přesun operace mezi dvě
- *  existující nesmí vyžadovat přepis sortKey ostatních záznamů. */
+/** Stabilní řadicí klíč pro Operation/Position/Activity - přesun mezi dvě existující
+ *  položky nesmí vyžadovat přepis sortKey ostatních záznamů. Immutable obálka nad
+ *  stringem. */
 export class SortKey {
   private constructor(private readonly value: string) {}
 
@@ -48,16 +50,35 @@ export class SortKey {
     return new SortKey(ALPHABET[Math.floor(BASE / 2)]);
   }
 
-  /** Klíč striktně mezi `a` a `b`. `a`/`b` mohou chybět (vložení na začátek/konec seznamu). */
-  static between(a: SortKey | null, b: SortKey | null): SortKey {
-    if (a && b && a.value >= b.value) {
-      throw new ValidationError("SortKey.between: 'a' musí být menší než 'b'.");
+  /** Klíč striktně mezi `left` a `right`. Kterýkoli z nich může chybět (vložení na
+   *  začátek/konec seznamu). */
+  static between(left: SortKey | null, right: SortKey | null): SortKey {
+    if (left && right && left.value >= right.value) {
+      throw new ValidationError("SortKey.between: 'left' musí být menší než 'right'.");
     }
-    return new SortKey(generateBetween(a?.value ?? "", b?.value ?? null));
+    return new SortKey(generateBetween(left?.value ?? "", right?.value ?? null));
+  }
+
+  /** Klíč hned za `current` (žádná horní mez). */
+  static after(current: SortKey): SortKey {
+    return SortKey.between(current, null);
+  }
+
+  /** Klíč hned před `current` (žádná dolní mez). */
+  static before(current: SortKey): SortKey {
+    return SortKey.between(null, current);
   }
 
   toString(): string {
     return this.value;
+  }
+
+  toJSON(): string {
+    return this.value;
+  }
+
+  static fromJSON(value: string): SortKey {
+    return SortKey.of(value);
   }
 
   compareTo(other: SortKey): number {

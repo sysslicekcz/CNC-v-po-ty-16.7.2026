@@ -18,6 +18,14 @@ export class Email {
     return this.value;
   }
 
+  toJSON(): string {
+    return this.value;
+  }
+
+  static fromJSON(value: string): Email {
+    return Email.of(value);
+  }
+
   equals(other: Email): boolean {
     return this.value === other.value;
   }

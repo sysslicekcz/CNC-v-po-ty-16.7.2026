@@ -1,6 +1,5 @@
 import { ValidationError } from "../errors/validation-error";
 import { Quantity } from "../value-objects/quantity";
-import { ExternalReference } from "../value-objects/external-reference";
 
 export interface PartProps {
   id: string;
@@ -10,27 +9,25 @@ export interface PartProps {
   cisloVykresu?: string;
   revizeVykresu?: string;
   material?: string;
-  materialId?: string; // budoucí FK na Material - připraveno, dnes se nepoužívá
   polotovar?: string;
   poznamka?: string;
   dokumentaceRef?: string;
-  externalRefs?: ExternalReference[];
 }
 
-/** Díl patří k zakázce (orderId, jen odkaz). Nesmí mít žádnou vazbu na stroj/zdroj -
- *  ta je až uvnitř RoutingSheet -> Operation. RoutingSheet je samostatný agregát
- *  odkazovaný přes partId, ne vnořená kolekce tady. */
+/** Díl patří k zakázce (orderId, jen odkaz). Nemá žádnou vazbu na stroj - ta je až
+ *  uvnitř RoutingSheet -> Operation. RoutingSheet je vlastní agregát odkazovaný
+ *  přes partId, ne vnořená kolekce tady. */
 export class Part {
   private constructor(private props: PartProps) {}
 
   static create(props: PartProps): Part {
     if (!props.orderId.trim()) throw new ValidationError("Part: 'orderId' nesmí být prázdné.");
     if (!props.nazev.trim()) throw new ValidationError("Part: 'nazev' nesmí být prázdný.");
-    return new Part({ ...props, externalRefs: props.externalRefs ?? [] });
+    return new Part({ ...props });
   }
 
   static restore(props: PartProps): Part {
-    return new Part({ ...props, externalRefs: props.externalRefs ?? [] });
+    return new Part({ ...props });
   }
 
   get id(): string {
@@ -54,9 +51,6 @@ export class Part {
   get material(): string | undefined {
     return this.props.material;
   }
-  get materialId(): string | undefined {
-    return this.props.materialId;
-  }
   get polotovar(): string | undefined {
     return this.props.polotovar;
   }
@@ -65,9 +59,6 @@ export class Part {
   }
   get dokumentaceRef(): string | undefined {
     return this.props.dokumentaceRef;
-  }
-  get externalRefs(): readonly ExternalReference[] {
-    return this.props.externalRefs ?? [];
   }
 
   /** Zobrazovací popisek - "číslo výkresu · název", nebo jen název bez čísla výkresu. */

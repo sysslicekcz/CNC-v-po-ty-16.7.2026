@@ -1,22 +1,28 @@
 import { ValidationError } from "../errors/validation-error";
 import { CuttingParameters } from "../value-objects/cutting-parameters";
+import { EntityStav } from "./common";
+
+export type MachiningMode = "roughing" | "finishing" | "universal";
 
 export interface ToolMachineConditionProps {
   id: string;
   toolId: string;
   machineId: string;
-  parametry: CuttingParameters;
+  parameters: CuttingParameters;
+  stav: EntityStav;
+  operationTypeId?: string;
   materialId?: string; // budoucí - odlišné podmínky podle obráběného materiálu
-  rezim?: "hrubovani" | "dokoncovani"; // budoucí
+  machiningMode?: MachiningMode;
+  priority?: number;
 }
 
-/** Malý samostatný agregát spojující Tool a Machine (dva jiné agregáty) - řezné
- *  podmínky konkrétního nástroje na konkrétním stroji, jako override výchozích
- *  hodnot z Tool.vychoziParametry. Odpovídá dnešnímu toolRows (klíč strojId:opId).
- *  Zůstává vázaná na Machine, ne na obecný Resource - Vc/f/ap dávají smysl jen
- *  pro obráběcí stroje. */
+/** Profil řezných podmínek nástroje na konkrétním stroji - NENÍ to jediná unikátní
+ *  kombinace (tool, machine): pro stejnou dvojici může existovat víc profilů
+ *  rozlišených podle operationTypeId/materialId/machiningMode a priority (viz
+ *  services/cutting-condition-resolver.ts pro výběr nejvhodnějšího). Odpovídá
+ *  dnešnímu toolRows (klíč strojId:opId), zobecněno na víc profilů. */
 export class ToolMachineCondition {
-  private constructor(private props: ToolMachineConditionProps) {}
+  private constructor(private readonly props: ToolMachineConditionProps) {}
 
   static create(props: ToolMachineConditionProps): ToolMachineCondition {
     if (!props.toolId.trim()) throw new ValidationError("ToolMachineCondition: 'toolId' nesmí být prázdné.");
@@ -33,17 +39,22 @@ export class ToolMachineCondition {
   get machineId(): string {
     return this.props.machineId;
   }
-  get parametry(): CuttingParameters {
-    return this.props.parametry;
+  get parameters(): CuttingParameters {
+    return this.props.parameters;
+  }
+  get stav(): EntityStav {
+    return this.props.stav;
+  }
+  get operationTypeId(): string | undefined {
+    return this.props.operationTypeId;
   }
   get materialId(): string | undefined {
     return this.props.materialId;
   }
-  get rezim(): "hrubovani" | "dokoncovani" | undefined {
-    return this.props.rezim;
+  get machiningMode(): MachiningMode | undefined {
+    return this.props.machiningMode;
   }
-
-  setParametry(parametry: CuttingParameters): void {
-    this.props.parametry = parametry;
+  get priority(): number | undefined {
+    return this.props.priority;
   }
 }

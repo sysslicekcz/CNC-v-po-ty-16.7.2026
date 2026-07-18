@@ -25,6 +25,14 @@ export class Ico {
     return this.value;
   }
 
+  toJSON(): string {
+    return this.value;
+  }
+
+  static fromJSON(value: string): Ico {
+    return Ico.of(value);
+  }
+
   equals(other: Ico): boolean {
     return this.value === other.value;
   }

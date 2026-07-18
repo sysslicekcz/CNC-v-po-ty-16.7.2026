@@ -1,30 +1,33 @@
-import { ValidationError } from "../errors/validation-error";
-import { NotFoundError } from "../errors/not-found-error";
-import { SortKey } from "../value-objects/sort-key";
-import { EntityStav } from "./operation-type";
+import { ValidationError } from "../../errors/validation-error";
+import { NotFoundError } from "../../errors/not-found-error";
+import { SortKey } from "../../value-objects/sort-key";
+import { OperationNumber } from "../../value-objects/operation-number";
+import { EntityStav } from "../../entities/common";
 import { Position, NewPositionInput } from "./position";
 
 export interface OperationProps {
   id: string;
-  routingSheetId: string;
-  operationNumber: number;
+  operationNumber: OperationNumber;
   sortKey: SortKey;
   nazev: string;
   stav: EntityStav;
-  resourceId?: string;
+  machineId?: string;
   technologickaPoznamka?: string;
 }
 
 export interface NewOperationInput {
   id: string;
   nazev: string;
-  resourceId?: string;
+  machineId?: string;
   technologickaPoznamka?: string;
 }
 
-/** Technologický krok postupu - vnitřní entita agregátu RoutingSheet. Nenese
- *  nástroj ani jednotný typ operace přímo (to je na Activity, viz report v2) -
- *  jen přiřazený zdroj (resourceId) a sdružuje upnutí (Position). */
+/** Technologický krok postupu - vnořená entita agregátu RoutingSheet, nenese
+ *  odkaz zpátky na RoutingSheet (vztah je dán vnořením, ne FK). Nenese nástroj ani
+ *  jednotný typ operace přímo - to je na Activity (jedna operace může mít víc
+ *  upnutí, jedno upnutí víc činností s různými nástroji). Přiřazena je maximálně
+ *  jednomu stroji (machineId) - viz zadání Krok 2, "Operace je přiřazena maximálně
+ *  jednomu stroji." */
 export class Operation {
   private positions: Position[] = [];
 
@@ -44,10 +47,7 @@ export class Operation {
   get id(): string {
     return this.props.id;
   }
-  get routingSheetId(): string {
-    return this.props.routingSheetId;
-  }
-  get operationNumber(): number {
+  get operationNumber(): OperationNumber {
     return this.props.operationNumber;
   }
   get sortKey(): SortKey {
@@ -59,8 +59,8 @@ export class Operation {
   get stav(): EntityStav {
     return this.props.stav;
   }
-  get resourceId(): string | undefined {
-    return this.props.resourceId;
+  get machineId(): string | undefined {
+    return this.props.machineId;
   }
   get technologickaPoznamka(): string | undefined {
     return this.props.technologickaPoznamka;
@@ -70,15 +70,16 @@ export class Operation {
   }
 
   /** Součet finalTime všech Activity ve všech upnutích - odvozená hodnota, nikdy
-   *  se neukládá ručně (viz report). */
+   *  se neukládá ručně. */
   get finalTime(): number {
     return this.positions.reduce(
-      (sum, position) => sum + position.activityList.reduce((s, a) => s + (a.calculationRecord?.finalTime ?? 0), 0),
+      (sum, position) => sum + position.activityList.reduce((s, a) => s + (a.calculation?.finalTime ?? 0), 0),
       0
     );
   }
 
-  setOperationNumber(operationNumber: number): void {
+  /** Přečíslování (OperationNumber) - čistě zobrazovací, nikdy nemění sortKey. */
+  setOperationNumber(operationNumber: OperationNumber): void {
     this.props.operationNumber = operationNumber;
   }
 
@@ -86,11 +87,11 @@ export class Operation {
     this.props.sortKey = sortKey;
   }
 
-  /** "Hloupý" setter - shodu zdroje s typy operací existujících Activity hlídá
-   *  use case v Application vrstvě přes ResourceCapabilityRepository (Operation
+  /** "Hloupý" setter - shodu stroje s typy operací existujících Activity hlídá
+   *  use case v Application vrstvě přes MachineCapabilityRepository (Operation
    *  nesmí sama volat repozitáře). */
-  assignResource(resourceId: string | undefined): void {
-    this.props.resourceId = resourceId;
+  assignMachine(machineId: string | undefined): void {
+    this.props.machineId = machineId;
   }
 
   getPosition(positionId: string): Position {
@@ -100,7 +101,7 @@ export class Operation {
   }
 
   addPosition(input: NewPositionInput): Position {
-    const position = Position.create({ id: input.id, operationId: this.props.id, nazev: input.nazev });
+    const position = Position.create({ id: input.id, nazev: input.nazev });
     this.positions.push(position);
     return position;
   }

@@ -2,9 +2,11 @@ export interface Entity {
   id: string;
 }
 
-/** Obecné CRUD rozhraní pro agregáty bez vlastní bohatší potřeby (Customer, Order,
- *  Part, Tool, ...). RoutingSheet má vlastní rozhraní (viz routing-sheet-repository.ts) -
- *  je to Aggregate Root s bohatším chováním okolo ukládání celého stromu. */
+/** Obecné CRUD rozhraní pro jednoduché agregáty (Customer, Order, Part, Machine,
+ *  Tool, číselníky, ...). RoutingSheet má vlastní rozhraní (routing-sheet-
+ *  repository.ts) - je to Aggregate Root, jehož vnitřní entity (Operation,
+ *  Position, Activity, Calculation) nemají vlastní write repository (zadání,
+ *  bod 13). */
 export interface Repository<T extends Entity> {
   findById(id: string): Promise<T | null>;
   findAll(): Promise<T[]>;

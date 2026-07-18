@@ -1,33 +1,30 @@
 import { ValidationError } from "../errors/validation-error";
 
 export interface AddressProps {
-  ulice: string;
+  ulice?: string;
   mesto: string;
-  psc: string;
+  psc?: string;
   zeme: string;
 }
 
-/** Fakturační/dodací adresa. Pokud entita adresu má, musí být kompletní - "napůl vyplněná"
- *  adresa by na faktuře/dokladu stejně nebyla použitelná. */
+/** Fakturační/dodací adresa. Jen mesto a zeme jsou povinné - ulice/psc se hodí
+ *  u některých zahraničních adres vynechat, nemá smysl to vynucovat. */
 export class Address {
   private constructor(private readonly props: AddressProps) {}
 
   static of(props: AddressProps): Address {
-    for (const [key, value] of Object.entries(props)) {
-      if (!value || !value.trim()) {
-        throw new ValidationError(`Adresa: pole "${key}" nesmí být prázdné.`);
-      }
-    }
+    if (!props.mesto.trim()) throw new ValidationError("Address: 'mesto' nesmí být prázdné.");
+    if (!props.zeme.trim()) throw new ValidationError("Address: 'zeme' nesmí být prázdné.");
     return new Address({ ...props });
   }
 
-  get ulice(): string {
+  get ulice(): string | undefined {
     return this.props.ulice;
   }
   get mesto(): string {
     return this.props.mesto;
   }
-  get psc(): string {
+  get psc(): string | undefined {
     return this.props.psc;
   }
   get zeme(): string {
@@ -35,6 +32,15 @@ export class Address {
   }
 
   toString(): string {
-    return `${this.props.ulice}, ${this.props.psc} ${this.props.mesto}, ${this.props.zeme}`;
+    const ulicePsc = [this.props.ulice, this.props.psc].filter(Boolean).join(", ");
+    return [ulicePsc, this.props.mesto, this.props.zeme].filter(Boolean).join(", ");
+  }
+
+  toJSON(): AddressProps {
+    return { ...this.props };
+  }
+
+  static fromJSON(json: AddressProps): Address {
+    return Address.of(json);
   }
 }

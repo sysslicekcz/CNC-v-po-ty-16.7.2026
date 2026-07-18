@@ -1,12 +1,12 @@
-import { ValidationError } from "../errors/validation-error";
-import { NotFoundError } from "../errors/not-found-error";
-import { SortKey } from "../value-objects/sort-key";
+import { ValidationError } from "../../errors/validation-error";
+import { NotFoundError } from "../../errors/not-found-error";
+import { SortKey } from "../../value-objects/sort-key";
 import { Activity, NewActivityInput } from "./activity";
 
 export interface PositionProps {
   id: string;
-  operationId: string;
   nazev: string;
+  sortKey?: SortKey;
 }
 
 export interface NewPositionInput {
@@ -15,7 +15,10 @@ export interface NewPositionInput {
 }
 
 /** Jedno fyzické upnutí dílu v rámci Operation - sdružuje technologické činnosti
- *  (Activity) provedené v tomto upnutí. Vnitřní entita agregátu RoutingSheet. */
+ *  (Activity) provedené v tomto upnutí. Nenese odkaz na Operation - je to vnořená
+ *  entita (viz aggregates/routing-sheet/operation.ts). `sortKey` je volitelný -
+ *  pokud upnutí v UI zatím nemají měnitelné pořadí, pole existuje připravené, ale
+ *  nemusí být aktivně používané (viz zadání, bod 6). */
 export class Position {
   private activities: Activity[] = [];
 
@@ -35,14 +38,14 @@ export class Position {
   get id(): string {
     return this.props.id;
   }
-  get operationId(): string {
-    return this.props.operationId;
-  }
   get nazev(): string {
     return this.props.nazev;
   }
+  get sortKey(): SortKey | undefined {
+    return this.props.sortKey;
+  }
 
-  /** Seřazené podle sortKey. */
+  /** Seřazené podle sortKey, pokud ho Activity mají; jinak v pořadí přidání. */
   get activityList(): readonly Activity[] {
     return [...this.activities].sort((a, b) => a.sortKey.compareTo(b.sortKey));
   }
@@ -58,10 +61,10 @@ export class Position {
     const lastKey = sorted.length ? sorted[sorted.length - 1].sortKey : null;
     const activity = Activity.create({
       id: input.id,
-      positionId: this.props.id,
       operationTypeId: input.operationTypeId,
       calculationType: input.calculationType,
       sortKey: SortKey.between(lastKey, null),
+      kind: input.kind ?? "calculation",
       toolId: input.toolId,
       technologickaPoznamka: input.technologickaPoznamka,
       stav: "aktivni",

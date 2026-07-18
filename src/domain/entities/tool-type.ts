@@ -1,16 +1,15 @@
 import { ValidationError } from "../errors/validation-error";
-import { EntityStav } from "./operation-type";
+import { EntityStav } from "./common";
 
 export interface ToolTypeProps {
   id: string;
   kod: string;
   nazev: string;
-  popis?: string;
   stav: EntityStav;
+  popis?: string;
 }
 
-/** Typ nástroje jako číselníková entita - stejné zdůvodnění jako u OperationType:
- *  nový typ nástroje se přidá jako data, ne jako zásah do schématu/kódu. */
+/** Typ nástroje jako datový číselník - stejné zdůvodnění jako u OperationType. */
 export class ToolType {
   private constructor(private readonly props: ToolTypeProps) {}
 
@@ -30,10 +29,10 @@ export class ToolType {
   get nazev(): string {
     return this.props.nazev;
   }
-  get popis(): string | undefined {
-    return this.props.popis;
-  }
   get stav(): EntityStav {
     return this.props.stav;
+  }
+  get popis(): string | undefined {
+    return this.props.popis;
   }
 }

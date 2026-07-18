@@ -1,5 +1,4 @@
 import { ValidationError } from "../errors/validation-error";
-import { ExternalReference } from "../value-objects/external-reference";
 
 export type OrderStav = "nova" | "v-reseni" | "hotovo" | "zrusena";
 
@@ -9,17 +8,15 @@ export interface OrderProps {
   cisloZakazky: string;
   nazev: string;
   stav: OrderStav;
-  createdAt: number;
-  externalErpId?: string;
   termin?: number;
   poznamka?: string;
+  createdAt: number;
   updatedAt?: number;
-  externalRefs?: ExternalReference[];
 }
 
-/** Zakázka patří jednomu zákazníkovi (customerId, jen odkaz přes id - Customer je
- *  samostatný agregát). Záměrně nemá žádnou vazbu na Resource/Tool - ty jsou až
- *  na úrovni Operation uvnitř RoutingSheet. */
+/** Zakázka patří jednomu zákazníkovi (customerId, jen odkaz - Customer je vlastní
+ *  agregát). Nemá žádnou vazbu na Machine/Tool - ta je až na úrovni Operation uvnitř
+ *  RoutingSheet. */
 export class Order {
   private constructor(private props: OrderProps) {}
 
@@ -27,11 +24,11 @@ export class Order {
     if (!props.customerId.trim()) throw new ValidationError("Order: 'customerId' nesmí být prázdné.");
     if (!props.cisloZakazky.trim()) throw new ValidationError("Order: 'cisloZakazky' nesmí být prázdné.");
     if (!props.nazev.trim()) throw new ValidationError("Order: 'nazev' nesmí být prázdný.");
-    return new Order({ ...props, externalRefs: props.externalRefs ?? [] });
+    return new Order({ ...props });
   }
 
   static restore(props: OrderProps): Order {
-    return new Order({ ...props, externalRefs: props.externalRefs ?? [] });
+    return new Order({ ...props });
   }
 
   get id(): string {
@@ -49,23 +46,17 @@ export class Order {
   get stav(): OrderStav {
     return this.props.stav;
   }
-  get createdAt(): number {
-    return this.props.createdAt;
-  }
-  get externalErpId(): string | undefined {
-    return this.props.externalErpId;
-  }
   get termin(): number | undefined {
     return this.props.termin;
   }
   get poznamka(): string | undefined {
     return this.props.poznamka;
   }
+  get createdAt(): number {
+    return this.props.createdAt;
+  }
   get updatedAt(): number | undefined {
     return this.props.updatedAt;
-  }
-  get externalRefs(): readonly ExternalReference[] {
-    return this.props.externalRefs ?? [];
   }
 
   setStav(stav: OrderStav, at: number): void {

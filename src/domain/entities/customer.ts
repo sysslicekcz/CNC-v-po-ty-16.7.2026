@@ -3,9 +3,8 @@ import { Ico } from "../value-objects/ico";
 import { Dic } from "../value-objects/dic";
 import { Email } from "../value-objects/email";
 import { Address } from "../value-objects/address";
-import { ExternalReference } from "../value-objects/external-reference";
-import { EntityStav } from "./operation-type";
-import { ContactPerson, NewContactPersonInput } from "./contact-person";
+import { EntityStav } from "./common";
+import { ContactPerson, ContactPersonProps } from "./contact-person";
 
 export interface CustomerProps {
   id: string;
@@ -18,12 +17,12 @@ export interface CustomerProps {
   telefon?: string;
   email?: Email;
   poznamka?: string;
-  externalRefs?: ExternalReference[];
 }
 
-/** Zákazník je Aggregate Root nad ContactPerson - kontaktní osoby se přidávají/mažou
- *  jen přes tuhle třídu, ne samostatným repozitářem. Název firmy záměrně není primární
- *  klíč (viz zadání) - identita je 'id'. */
+export type NewContactPersonInput = ContactPersonProps;
+
+/** Zákazník vlastní kontaktní osoby (owned collection) - přidávají/mažou se jen
+ *  přes tuhle třídu. Název firmy záměrně není primární klíč - identita je 'id'. */
 export class Customer {
   private contactPersons: ContactPerson[] = [];
 
@@ -31,12 +30,12 @@ export class Customer {
 
   static create(props: CustomerProps): Customer {
     if (!props.nazev.trim()) throw new ValidationError("Customer: 'nazev' nesmí být prázdný.");
-    return new Customer({ ...props, externalRefs: props.externalRefs ?? [] });
+    return new Customer({ ...props });
   }
 
   /** Rekonstrukce z uloženého stavu (repozitář) včetně existujících kontaktů. */
   static restore(props: CustomerProps, contactPersons: ContactPerson[]): Customer {
-    const customer = new Customer({ ...props, externalRefs: props.externalRefs ?? [] });
+    const customer = new Customer({ ...props });
     customer.contactPersons = [...contactPersons];
     return customer;
   }
@@ -71,9 +70,6 @@ export class Customer {
   get poznamka(): string | undefined {
     return this.props.poznamka;
   }
-  get externalRefs(): readonly ExternalReference[] {
-    return this.props.externalRefs ?? [];
-  }
   get contacts(): readonly ContactPerson[] {
     return this.contactPersons;
   }
@@ -88,7 +84,7 @@ export class Customer {
   }
 
   addContact(input: NewContactPersonInput): ContactPerson {
-    const contact = ContactPerson.create({ ...input, customerId: this.props.id });
+    const contact = ContactPerson.create(input);
     this.contactPersons.push(contact);
     return contact;
   }

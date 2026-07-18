@@ -1,32 +1,32 @@
 import { ValidationError } from "../errors/validation-error";
+import { EntityStav } from "./common";
 
-/** Vysoká klasifikace pro shodu se strojem (ResourceCapability) a pro odvození typu
- *  stroje. "Preparation" (přípravné časy) je speciální - nekontroluje se proti
- *  capabilitám zdroje, protože je dostupná na každém stroji (viz filterOperationsForMachine
- *  v dnešním operations.ts). */
+/** Vysoká klasifikace pro shodu se strojem (MachineCapability) a pro odvození typu
+ *  stroje. "preparation" (přípravné časy) je speciální - nekontroluje se proti
+ *  capabilitám stroje, protože je dostupná na každém stroji (viz
+ *  filterOperationsForMachine v dnešním lib/operations.ts). */
 export type OperationCategory =
-  | "Turning"
-  | "Milling"
-  | "Grinding"
-  | "Cutting"
-  | "Inspection"
-  | "NDT"
-  | "Preparation"
-  | "Other";
-
-export type EntityStav = "aktivni" | "neaktivni";
+  | "turning"
+  | "milling"
+  | "grinding"
+  | "cutting"
+  | "inspection"
+  | "ndt"
+  | "preparation"
+  | "other";
 
 export interface OperationTypeProps {
   id: string;
   kod: string;
   nazev: string;
   kategorie: OperationCategory;
-  popis?: string;
   stav: EntityStav;
+  popis?: string;
 }
 
-/** Typ operace jako číselníková entita, ne enum - nový typ operace (např. nové
- *  broušení, nová NDT metoda) se přidá jako datový záznam, ne jako změna kódu. */
+/** Typ operace jako datový číselník, ne pevný enum - nový typ operace (např. nové
+ *  broušení, nová NDT metoda) se přidá jako datový záznam, ne jako změna
+ *  databázového schématu nebo kódu. */
 export class OperationType {
   private constructor(private readonly props: OperationTypeProps) {}
 
@@ -49,16 +49,16 @@ export class OperationType {
   get kategorie(): OperationCategory {
     return this.props.kategorie;
   }
-  get popis(): string | undefined {
-    return this.props.popis;
-  }
   get stav(): EntityStav {
     return this.props.stav;
   }
+  get popis(): string | undefined {
+    return this.props.popis;
+  }
 
-  /** Kategorie Preparation se nekontroluje proti ResourceCapability - je dostupná
-   *  na každém zdroji bez ohledu na to, co umí. */
-  get vyzadujeShoduSeZdrojem(): boolean {
-    return this.props.kategorie !== "Preparation";
+  /** Kategorie "preparation" se nekontroluje proti MachineCapability - je dostupná
+   *  na každém stroji bez ohledu na to, co umí. */
+  get vyzadujeShoduSeStrojem(): boolean {
+    return this.props.kategorie !== "preparation";
   }
 }

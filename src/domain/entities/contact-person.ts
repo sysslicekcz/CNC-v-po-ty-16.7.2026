@@ -3,7 +3,6 @@ import { Email } from "../value-objects/email";
 
 export interface ContactPersonProps {
   id: string;
-  customerId: string;
   jmeno: string;
   pozice?: string;
   telefon?: string;
@@ -11,12 +10,11 @@ export interface ContactPersonProps {
   poznamka?: string;
 }
 
-export type NewContactPersonInput = Omit<ContactPersonProps, "customerId">;
-
-/** Kontaktní osoba - vnitřní entita agregátu Customer, nemá smysl bez zákazníka
- *  a nemodifikuje se mimo Customer.addContact()/removeContact(). */
+/** Kontaktní osoba - vnořená (owned) entita v rámci agregátu Customer, nemá
+ *  smysl bez zákazníka. Nenese customerId - vztah je dán tím, že je uložená
+ *  přímo v Customer.contacts, ne samostatnou FK vazbou. */
 export class ContactPerson {
-  private constructor(private props: ContactPersonProps) {}
+  private constructor(private readonly props: ContactPersonProps) {}
 
   static create(props: ContactPersonProps): ContactPerson {
     if (!props.jmeno.trim()) throw new ValidationError("ContactPerson: 'jmeno' nesmí být prázdné.");
@@ -25,9 +23,6 @@ export class ContactPerson {
 
   get id(): string {
     return this.props.id;
-  }
-  get customerId(): string {
-    return this.props.customerId;
   }
   get jmeno(): string {
     return this.props.jmeno;

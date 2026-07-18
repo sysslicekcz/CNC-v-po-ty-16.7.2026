@@ -1,6 +1,6 @@
 import { ValidationError } from "../errors/validation-error";
 import { CuttingParameters } from "../value-objects/cutting-parameters";
-import { EntityStav } from "./operation-type";
+import { EntityStav } from "./common";
 
 export interface ToolProps {
   id: string;
@@ -8,24 +8,24 @@ export interface ToolProps {
   toolTypeId: string;
   stav: EntityStav;
   radius?: number;
-  vychoziParametry?: CuttingParameters;
+  defaultCuttingParameters?: CuttingParameters;
   poznamka?: string;
-  // Připraveno pro budoucí rozšíření beze změny struktury - viz zadání
-  // (výrobce, držák, ISO označení, katalogové číslo, sklad, životnost, cena):
-  vyrobce?: string;
-  drzak?: string;
-  isoOznaceni?: string;
-  katalogoveCislo?: string;
 }
 
-/** Nástroj je globální entita (ne vlastněná strojem) - viz report, řezné podmínky
- *  pro konkrétní stroj drží samostatně ToolMachineCondition. */
+/** Nástroj je globální entita (ne vlastněná strojem) - řezné podmínky pro konkrétní
+ *  stroj drží samostatně ToolMachineCondition. Pole jako výrobce/držák/ISO
+ *  označení/katalogové číslo/sklad/cena záměrně chybí (viz zadání) - jde je přidat
+ *  později jako volitelná pole bez zásahu do existující struktury. */
 export class Tool {
   private constructor(private props: ToolProps) {}
 
   static create(props: ToolProps): Tool {
     if (!props.nazev.trim()) throw new ValidationError("Tool: 'nazev' nesmí být prázdný.");
     if (!props.toolTypeId.trim()) throw new ValidationError("Tool: 'toolTypeId' nesmí být prázdné.");
+    return new Tool({ ...props });
+  }
+
+  static restore(props: ToolProps): Tool {
     return new Tool({ ...props });
   }
 
@@ -44,22 +44,10 @@ export class Tool {
   get radius(): number | undefined {
     return this.props.radius;
   }
-  get vychoziParametry(): CuttingParameters | undefined {
-    return this.props.vychoziParametry;
+  get defaultCuttingParameters(): CuttingParameters | undefined {
+    return this.props.defaultCuttingParameters;
   }
   get poznamka(): string | undefined {
     return this.props.poznamka;
-  }
-  get vyrobce(): string | undefined {
-    return this.props.vyrobce;
-  }
-  get drzak(): string | undefined {
-    return this.props.drzak;
-  }
-  get isoOznaceni(): string | undefined {
-    return this.props.isoOznaceni;
-  }
-  get katalogoveCislo(): string | undefined {
-    return this.props.katalogoveCislo;
   }
 }
