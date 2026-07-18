@@ -58,7 +58,7 @@ describe("GetFeatureAccessSnapshotUseCase", () => {
     expect(snapshot.tenantActive).toBe(true);
     expect(snapshot.access[FeatureCodes.MachinesView]).toBe("full");
     expect(snapshot.access[FeatureCodes.RoutingEdit]).toBe("read");
-    expect(snapshot.access[FeatureCodes.IntegrationHeliosSync]).toBe("none");
+    expect(snapshot.access[FeatureCodes.IntegrationErpSync]).toBe("none");
     expect(snapshot.licenseError).toBeUndefined();
     // Musí obsahovat záznam pro úplně každý FeatureCode z katalogu.
     expect(Object.keys(snapshot.access)).toHaveLength(Object.keys(FeatureCodes).length);

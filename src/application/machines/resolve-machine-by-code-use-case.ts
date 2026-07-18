@@ -4,7 +4,7 @@ import { MachineRepository } from "@/domain/repositories/machine-repository";
 import { TenantContext } from "@/domain/services/tenant-context";
 import { UnknownMachineCodeError } from "@/domain/errors/unknown-machine-code-error";
 
-/** Najde stroj podle uživatelského/Helios kódu (Krok 3.5, bod 16) - NIKDY
+/** Najde stroj podle uživatelského/podnikového kódu (Krok 3.5, bod 16) - NIKDY
  *  automaticky nevytvoří nový stroj, pokud kód neexistuje (viz docs/adr/0016) -
  *  neznámý kód je integrační problém k ručnímu vyřešení, ne důvod tiše založit
  *  nový záznam. */

@@ -39,7 +39,7 @@ describe("DevelopmentLicenseProvider", () => {
 
     const license = await provider.getCurrentLicense();
     expect(license.getFeatureAccess(FeatureCodes.MachinesManage)).toBe("full");
-    expect(license.getFeatureAccess(FeatureCodes.IntegrationHeliosSync)).toBe("full");
+    expect(license.getFeatureAccess(FeatureCodes.IntegrationErpSync)).toBe("full");
   });
 
   it("bezpečný výchozí stav bez explicitního přepsání čte process.env.NODE_ENV, ne 'development' natvrdo", async () => {

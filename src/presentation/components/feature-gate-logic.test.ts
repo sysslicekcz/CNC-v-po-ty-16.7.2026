@@ -36,7 +36,7 @@ describe("resolveFeatureGateState", () => {
 
   it("vrátí 'denied' pro funkci, která v snapshotu vůbec není uvedená (chybí = 'none')", () => {
     const snapshot = snapshotWith({});
-    expect(resolveFeatureGateState(snapshot, FeatureCodes.IntegrationHeliosSync)).toBe("denied");
+    expect(resolveFeatureGateState(snapshot, FeatureCodes.IntegrationErpSync)).toBe("denied");
   });
 
   it("výchozí requiredAccess je 'read'", () => {

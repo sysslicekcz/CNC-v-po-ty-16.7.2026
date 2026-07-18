@@ -20,8 +20,9 @@ const LEGACY_SOURCE = "machines";
  *  pořád vytvoří, jen s warningem v reportu, nic se nezahazuje. Legacy stroje
  *  nikdy neměly žádný kód (Krok 3.5, bod 8) - dostanou deterministický fallback
  *  "LEGACY-MACHINE-{legacyId}" a warning, aby uživatel věděl, že si má doplnit
- *  skutečný Helios kód. Všechny migrované stroje patří výchozímu lokálnímu
- *  tenantovi (docs/adr/0019). */
+ *  skutečný podnikový kód (viz docs/adr/0015 - appka není závislá na žádném
+ *  konkrétním ERP, docs/adr/erp-agnostic-integration-layer.md). Všechny
+ *  migrované stroje patří výchozímu lokálnímu tenantovi (docs/adr/0019). */
 export async function runMigrateMachinesPhase(
   data: LegacySourceData,
   repos: { machines: IndexedDbMachineRepository; capabilities: IndexedDbMachineCapabilityRepository },
@@ -37,7 +38,7 @@ export async function runMigrateMachinesPhase(
       severity: "warning",
       phase: "migrate-machines",
       code: "machine-code-fallback-assigned",
-      message: `Stroj "${machine.id}" (${machine.nazev}) neměl v legacy datech žádný výrobní kód - přidělen dočasný kód "${fallbackCode}". Doporučeno doplnit skutečný Helios kód.`,
+      message: `Stroj "${machine.id}" (${machine.nazev}) neměl v legacy datech žádný výrobní kód - přidělen dočasný kód "${fallbackCode}". Doporučeno doplnit skutečný podnikový kód.`,
       legacySource: LEGACY_SOURCE,
       legacyId: machine.id,
     });

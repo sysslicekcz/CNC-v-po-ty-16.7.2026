@@ -4,13 +4,13 @@ Viz `docs/adr/0020` až `docs/adr/0023` pro jednotlivá rozhodnutí. Tenhle doku
 
 ## Co Krok 3.5 NEIMPLEMENTUJE
 
-Plnou Helios integraci, auto-sync, platby, billing, subscription management, plnou autentizaci, uživatelské role, vzdálený licenční server. Postavený je jen **lokální, offline funkční základ**, na který se dá bezpečně navázat.
+Plnou ERP integraci (import/export/sync dat s reálným konkrétním systémem), auto-sync, platby, billing, subscription management, plnou autentizaci, uživatelské role, vzdálený licenční server. Postavený je jen **lokální, offline funkční základ**, na který se dá bezpečně navázat - viz `docs/step-3-5/erp-integration.md` pro integrační vrstvu samotnou.
 
 ## Katalog: FeatureCode, FeatureAccess, LicenseLimitCode
 
-- `FeatureCode` (`src/domain/licensing/feature-code.ts`) - stabilní seznam string literálů (`routing.view`, `machines.manage`, `integration.helios.sync`, ...). `FeatureCodes` je pohodlný objekt se stejnými hodnotami pro autocomplete.
+- `FeatureCode` (`src/domain/licensing/feature-code.ts`) - stabilní seznam string literálů (`routing.view`, `machines.manage`, `integration.erp.sync`, ...) - integrační funkce jsou ERP-neutrální (`integration.erp.*`/`integration.file.*`), NE vázané na konkrétní ERP (viz `docs/adr/erp-agnostic-integration-layer.md`). `FeatureCodes` je pohodlný objekt se stejnými hodnotami pro autocomplete. Dostupnost KONKRÉTNÍHO konektoru řídí samostatný dynamický `ConnectorFeatureCode` (`connector.helios`, `connector.sap`, ...) - `LicenseFeatureCode = FeatureCode | ConnectorFeatureCode`.
 - `FeatureAccess` = `"none" | "read" | "write" | "full"` (`src/domain/licensing/feature-access.ts`) - řazený model přístupu, `satisfiesAccess(actual, required)` porovnává úrovně.
-- `LicenseLimitCode` (`src/domain/licensing/license-limit-code.ts`) - `users.max`, `machines.max`, `routingSheets.active.max`, `calculations.monthly.max`, `storage.mb.max`.
+- `LicenseLimitCode` (`src/domain/licensing/license-limit-code.ts`) - `users.max`, `machines.max`, `routingSheets.active.max`, `calculations.monthly.max`, `storage.mb.max`, `integrations.systems.max` (počet připojených externích systémů).
 
 ## Entita License
 
@@ -49,7 +49,7 @@ limits: [] (bez omezení)
 status: active, validFrom: epoch (0), bez validUntil (trvalá)
 ```
 
-Funkce, které appka ještě nemá v UI (plánování, Helios integrace, kooperace, capacity groups), NEJSOU v licenci uvedené - `FeatureAccessService` je vrátí jako `"none"`, dokud nebudou skutečně implementované a vědomě licenčně zpřístupněné.
+Funkce, které appka ještě nemá v UI (plánování, ERP integrace, kooperace, capacity groups), NEJSOU v licenci uvedené - `FeatureAccessService` je vrátí jako `"none"`, dokud nebudou skutečně implementované a vědomě licenčně zpřístupněné.
 
 ## Vynucení v Application vrstvě, ne jen v UI
 
@@ -60,6 +60,10 @@ Viz `docs/adr/0021`. Každý chráněný use case (`CreateMachineUseCase`, `Crea
 `GetFeatureAccessSnapshotUseCase` (`src/application/licensing/get-feature-access-snapshot-use-case.ts`) projde CELÝ katalog `FeatureCode` a sestaví `FeatureAccessSnapshot` (`{tenantId, tenantActive, access: Record<FeatureCode, FeatureAccess>, licenseError?}`) - jedno načtení pro celé UI, místo aby si každá komponenta volala `FeatureAccessService` zvlášť. Chyba při vyhodnocení licence (neaktivní tenant, vypršelá/pozastavená licence) se nepropaguje jako výjimka celého use casu - promítne se do `licenseError` a všechny funkce dostanou `"none"`.
 
 `FeatureGate` (`src/presentation/components/feature-gate.tsx`) je čistě prezentační - řídí se podle snapshotu, rozhodovací logika je vytažená do `resolveFeatureGateState()` (`feature-gate-logic.ts`), aby šla plně otestovat bez React rendereru (projekt zatím nemá testing-library/jsdom v devDependencies - viz `docs/step-3-5/known-limitations.md`). Stavy: `loading` (snapshot ještě `null`), `error` (`licenseError` vyplněný), `denied` (nedostatečný přístup), `granted`.
+
+## Licence jednotlivých konektorů
+
+`ErpConnectorDescriptor.requiredFeatureCode` (`src/domain/integrations/erp-connector-registry.ts`) umožňuje, aby konkrétní konektor (Helios, SAP, vlastní REST API, ...) vyžadoval vlastní `ConnectorFeatureCode` (typicky `connector.<connectorType>`) navíc k obecným `integration.erp.*` funkcím - organizace tak může mít licencovaný ERP import obecně, ale konkrétní konektor (např. `connector.sap`) zůstane nedostupný, dokud ho licence explicitně neuvede. `FeatureAccessService.require(connectorFeatureCode("helios"), ...)` funguje stejně jako pro libovolný jiný `FeatureCode` - žádné rozšíření kontraktu nebylo potřeba (viz `connector-license-decoupling.test.ts`). Odebrání licence konektoru NIKDY nemaže dřív importovaná data (`ExternalReference`/`ExternalSystem` na licenci vůbec nezávisí) - viz `docs/adr/0022` a `docs/adr/erp-agnostic-integration-layer.md`.
 
 ## Limity nikdy nemažou data
 

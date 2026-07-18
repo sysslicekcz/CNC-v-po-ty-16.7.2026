@@ -13,3 +13,6 @@ export * from "./tenant-mapper";
 export * from "./capacity-group-mapper";
 export * from "./external-operation-resource-mapper";
 export * from "./license-mapper";
+export * from "./external-system-mapper";
+export * from "./external-reference-mapper";
+export * from "./integration-mapper";

@@ -1,12 +1,15 @@
 import { ValidationError } from "../errors/validation-error";
-import { FeatureCode } from "./feature-code";
+import { LicenseFeatureCode } from "./feature-code";
 import { FeatureAccess } from "./feature-access";
 import { LicenseLimitCode } from "./license-limit-code";
 
 export type LicenseStatus = "trial" | "active" | "expired" | "suspended" | "cancelled";
 
+/** `code` je buď stabilní `FeatureCode` z katalogu, nebo dynamický
+ *  `ConnectorFeatureCode` (`connector.helios`, `connector.sap`, ...) řídící
+ *  dostupnost jednoho konkrétního ERP konektoru - viz `LicenseFeatureCode`. */
 export interface LicensedFeature {
-  code: FeatureCode;
+  code: LicenseFeatureCode;
   access: FeatureAccess;
 }
 
@@ -94,7 +97,7 @@ export class License {
 
   /** `undefined` = funkce v licenci vůbec není uvedená ("none" by naopak
    *  znamenalo, že o ní licence explicitně ví, ale nepovoluje ji). */
-  getFeatureAccess(feature: FeatureCode): FeatureAccess | undefined {
+  getFeatureAccess(feature: LicenseFeatureCode): FeatureAccess | undefined {
     return this.props.features.find((f) => f.code === feature)?.access;
   }
 

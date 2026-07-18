@@ -13,7 +13,7 @@ export interface CapacityGroupProps {
 }
 
 /**
- * Sdílená fyzická kapacita, kterou reprezentuje víc Helios kódů/strojů
+ * Sdílená fyzická kapacita, kterou reprezentuje víc podnikových kódů/strojů
  * (Krok 3.5, bod 13, docs/adr/0017) - např. `300-58140`/`300-58141` jsou dva
  * odlišné `Machine` záznamy (vlastní id, vlastní code), obě se jen odkazují na
  * stejnou `CapacityGroup` přes `Machine.capacityGroupId`. Tenhle krok

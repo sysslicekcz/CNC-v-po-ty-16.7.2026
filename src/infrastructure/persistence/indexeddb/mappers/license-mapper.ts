@@ -1,5 +1,6 @@
+import { ValidationError } from "@/domain/errors/validation-error";
 import { License, LicenseStatus } from "@/domain/licensing/license";
-import { FeatureCode, FeatureCodes } from "@/domain/licensing/feature-code";
+import { LicenseFeatureCode, FeatureCode, FeatureCodes } from "@/domain/licensing/feature-code";
 import { FeatureAccess } from "@/domain/licensing/feature-access";
 import { LicenseLimitCode } from "@/domain/licensing/license-limit-code";
 import { LicenseRecord, LicenseValidationRecord } from "../records";
@@ -8,14 +9,31 @@ import { parseEntityStavLike } from "./common";
 const STATUS_VALUES = ["trial", "active", "expired", "suspended", "cancelled"] as const satisfies readonly LicenseStatus[];
 const ACCESS_VALUES = ["none", "read", "write", "full"] as const satisfies readonly FeatureAccess[];
 const VALIDATION_STATUS_VALUES = ["valid", "grace_period", "expired", "unverified", "suspended"] as const;
-const FEATURE_CODE_VALUES = Object.values(FeatureCodes);
+const FEATURE_CODE_VALUES: readonly FeatureCode[] = Object.values(FeatureCodes);
 const LIMIT_CODE_VALUES = [
   "users.max",
   "machines.max",
   "routingSheets.active.max",
   "calculations.monthly.max",
   "storage.mb.max",
+  "integrations.systems.max",
 ] as const satisfies readonly LicenseLimitCode[];
+
+/** `LicensedFeature.code` je buď stabilní `FeatureCode` z katalogu, nebo
+ *  dynamický `ConnectorFeatureCode` (`connector.<cokoliv>`) - ten se nedá
+ *  validovat proti uzavřenému seznamu, protože konektory se přidávají bez
+ *  zásahu do domény (viz `docs/adr/erp-agnostic-integration-layer.md`). */
+function parseLicenseFeatureCode(value: string): LicenseFeatureCode {
+  if (value.startsWith("connector.") && value.length > "connector.".length) {
+    return value as LicenseFeatureCode;
+  }
+  if ((FEATURE_CODE_VALUES as readonly string[]).includes(value)) {
+    return value as FeatureCode;
+  }
+  throw new ValidationError(
+    `LicensedFeature.code: neplatná hodnota "${value}" (očekáváno jedno z: ${FEATURE_CODE_VALUES.join(", ")}, nebo "connector.<typ>").`
+  );
+}
 
 export function licenseToRecord(license: License): LicenseRecord {
   return {
@@ -50,7 +68,7 @@ export function licenseFromRecord(record: LicenseRecord): License {
     validFrom: record.validFrom,
     validUntil: record.validUntil,
     features: record.features.map((f) => ({
-      code: parseEntityStavLike(f.code, FEATURE_CODE_VALUES, "LicensedFeature.code") as FeatureCode,
+      code: parseLicenseFeatureCode(f.code),
       access: parseEntityStavLike(f.access, ACCESS_VALUES, "LicensedFeature.access"),
     })),
     limits: record.limits.map((l) => ({

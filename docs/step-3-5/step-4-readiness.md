@@ -4,7 +4,7 @@ Krok 3.5 explicitně nezaváděl novou editorovou UI pro postupy - jen připravi
 
 ## Jak bude editor načítat stroje
 
-Přes `MachineRepository.list(tenantId)` (tenant-scoped, `src/domain/repositories/machine-repository.ts`) - vrátí `Machine[]` pro aktuálního tenanta (`TenantContext.requireCurrentTenantId()`). Pro našeptávač/vyhledávání podle Helios kódu je k dispozici `ResolveMachineByCodeUseCase`. Editor by měl zobrazovat `Machine.code + " – " + Machine.name` (ne jen `name`) - kód je pro uživatele obeznámeného s Heliosem primární identifikátor.
+Přes `MachineRepository.list(tenantId)` (tenant-scoped, `src/domain/repositories/machine-repository.ts`) - vrátí `Machine[]` pro aktuálního tenanta (`TenantContext.requireCurrentTenantId()`). Pro našeptávač/vyhledávání podle podnikového kódu je k dispozici `ResolveMachineByCodeUseCase`. Editor by měl zobrazovat `Machine.code + " – " + Machine.name` (ne jen `name`) - kód je pro uživatele obeznámeného se svým ERP (ať už je to Helios, SAP, nebo cokoliv jiného) primární identifikátor.
 
 ## Jak Operation ukládá vazbu na stroj
 
@@ -26,6 +26,10 @@ Na začátku načtení stránky/komponenty zavolá `GetFeatureAccessSnapshotUseC
 
 Cokoliv, co mění `RoutingSheet`/`Operation`/`Position`/`Activity` (editace postupu) musí kontrolovat `FeatureCodes.RoutingEdit`; uvolnění/schválení postupu (pokud takový workflow Krok 4 zavede) musí kontrolovat `FeatureCodes.RoutingRelease` - obě funkce už jsou v katalogu (`FeatureCode`), ale v dnešní výchozí licenci (`seed-default-tenant.ts`) je zapnuté jen `routing.view`/`routing.edit` (`routing.release` NENÍ v licenci, protože appka dnes žádný release workflow nemá - jakmile Krok 4 workflow zavede, je potřeba defaultní licenci vědomě rozšířit, ne spoléhat na to, že funkce "nějak projde").
 
+## Pokud Krok 4 přidá zobrazení vazby na externí systém
+
+Editor NEMÁ přidávat žádné ERP-specifické pole na `Machine`/`Operation` ani nikam do domény - existuje-li potřeba zobrazit "s jakým ERP záznamem je tenhle stroj spárovaný", jde o dotaz `ExternalReferenceRepository.findByLocalEntity(tenantId, "machine", machine.id)` (může vrátit víc záznamů napříč víc systémy), ne nové pole na entitě. Viz `docs/step-3-5/erp-integration.md` a `docs/adr/external-system-reference-mapping.md`.
+
 ## Co Krok 4 NEMUSÍ řešit znovu
 
-Tenant-scoping strojů/nástrojů, unikátnost `MachineCode`/`ToolCode`, licenční infrastruktura (`FeatureAccessService`, snapshoty), `CapacityGroup`/`ExternalOperationResource` model - to všechno už existuje a je otestované. Krok 4 se soustředí na samotnou editorovou UI a use casy pro editaci postupu.
+Tenant-scoping strojů/nástrojů, unikátnost `MachineCode`/`ToolCode`, licenční infrastruktura (`FeatureAccessService`, snapshoty), `CapacityGroup`/`ExternalOperationResource` model, ERP-neutrální integrační vrstva (`ExternalSystem`/`ExternalReference`/`ErpConnector`/`ErpConnectorRegistry`) - to všechno už existuje a je otestované. Krok 4 se soustředí na samotnou editorovou UI a use casy pro editaci postupu.

@@ -13,5 +13,5 @@ Krok 3.5 připravuje appku na víc zákaznických organizací (tenantů), ale ap
 - Tenant-scoped repozitáře (Machine, CapacityGroup, ExternalOperationResource) berou `tenantId` jako explicitní parametr metod (`findById(id, tenantId)`), ne implicitně přes skrytý `TenantContext` uvnitř repozitáře - kvůli testovatelnosti a explicitnosti.
 
 ## Consequences
-- Multi-tenant model existuje a je otestovaný (izolace mezi tenanty, unikátnost `[tenantId, code]`) tam, kde appka dnes reálně potřebuje Helios kódy/licence, aniž by vyžadoval přepsání celého zbytku domény najednou.
+- Multi-tenant model existuje a je otestovaný (izolace mezi tenanty, unikátnost `[tenantId, code]`) tam, kde appka dnes reálně potřebuje podnikové kódy/licence, aniž by vyžadoval přepsání celého zbytku domény najednou.
 - Rozšíření `tenantId` na zbytek domény (Customer/Order/.../Calculation) je odložené na budoucí krok, až bude appka skutečně multi-tenantní i v UI, ne jen v datovém modelu.

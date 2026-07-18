@@ -23,7 +23,7 @@ Legacy `machines` store nikdy neměl kód. Protože `Machine.code`/`Machine.tena
 
 1. Přidělí `tenantId: DEFAULT_TENANT_ID` každému migrovanému stroji.
 2. Přidělí deterministický fallback kód `LEGACY-MACHINE-{legacyId}` (`MachineCode.create(...)`).
-3. Zaloguje `warning` issue `"machine-code-fallback-assigned"` s doporučením doplnit skutečný Helios kód - **u každého migrovaného stroje**, protože legacy data žádný kód nikdy neobsahovala.
+3. Zaloguje `warning` issue `"machine-code-fallback-assigned"` s doporučením doplnit skutečný podnikový kód - **u každého migrovaného stroje**, protože legacy data žádný kód nikdy neobsahovala.
 4. Pole se přejmenovalo `nazev` → `name`, `stav: "aktivni"` → `status: "active"` (anglické názvy, viz `docs/adr/0015`).
 
 Stejná změna se promítla do `MachineCapability.create(...)` (přidán `tenantId`) a do `migrate-tools.ts` (`Tool.create`/`ToolMachineCondition.create` - přidán `tenantId`, beze změny českých názvů polí, protože `Tool`/`ToolMachineCondition` si českou konvenci zachovávají).
@@ -31,6 +31,10 @@ Stejná změna se promítla do `MachineCapability.create(...)` (přidán `tenant
 ## `post-validation.ts`
 
 Kontrola `machines-count-and-hourly-rate-match` teď volá `machines.findById(newId, DEFAULT_TENANT_ID)` - nová tenant-scoped signatura `MachineRepository.findById`.
+
+## Dodatek "ERP-nezávislá architektura" – IndexedDB schema v2 → v3
+
+`DB_VERSION` dál povýšeno z `2` na `3`, stejně aditivně. Nové stores: `tpvExternalSystems`, `tpvExternalReferences`, `tpvIntegrationRuns`, `tpvIntegrationIssues` - viz `docs/step-3-5/erp-integration.md`. Migrační engine (`runMigrationEngine`) tenhle dodatek nemění - legacy appka žádná data o externích systémech neměla, není co migrovat.
 
 ## Regresní ověření
 

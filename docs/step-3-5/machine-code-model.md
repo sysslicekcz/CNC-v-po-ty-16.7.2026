@@ -1,15 +1,15 @@
 # Machine.id vs. Machine.code
 
-Viz `docs/adr/0015-internal-id-vs-business-code.md` a `docs/adr/0016-helios-resource-code-mapping.md` pro rozhodnutí. Tenhle dokument je praktický přehled.
+Viz `docs/adr/0015-internal-id-vs-business-code.md`, `docs/adr/0016-helios-resource-code-mapping.md` a `docs/adr/erp-agnostic-integration-layer.md` pro rozhodnutí. Tenhle dokument je praktický přehled. `Machine.code` je obecný PODNIKOVÝ kód (zákazníkem používané označení stroje/pracoviště) - appka není architektonicky závislá na žádném konkrétním ERP, Helios je v příkladech níže jen jedním z možných budoucích konektorů (viz `docs/step-3-5/erp-integration.md`).
 
 ## Dvě identity
 
 | | `Machine.id` | `Machine.code` |
 |---|---|---|
-| Kdo přiděluje | appka (`crypto.randomUUID()`) | uživatel / Helios |
+| Kdo přiděluje | appka (`crypto.randomUUID()`) | uživatel / libovolný připojený ERP |
 | Mění se? | nikdy | ano (`Machine.changeCode()`) |
 | Unikátnost | globální (UUID) | `[tenantId, code]` |
-| Na co se odkazují vazby appky | `Operation.machineId`, `CalculationSnapshot.machineId` | (zatím) nic uvnitř appky - připraveno pro Helios |
+| Na co se odkazují vazby appky | `Operation.machineId`, `CalculationSnapshot.machineId` | (zatím) nic uvnitř appky - připraveno pro párování s libovolným ERP (Helios je jen jeden příklad) |
 | Typ | `string` | `MachineCode` (Value Object) |
 
 ## `MachineCode` pravidla
@@ -25,7 +25,7 @@ Stejný dvouvrstvý vzor (use case + DB unique index jako pojistka) je použitý
 
 ## Legacy migrace a fallback kód
 
-Legacy `machines` store (Krok 3 a dřív) neměl žádné pole pro kód - appka ho nikdy neukládala. Protože `Machine.code` je teď POVINNÉ pole domény, `migrate-machines.ts` (`src/infrastructure/migration/phases/migrate-machines.ts`) přidělí každému migrovanému stroji deterministický fallback `LEGACY-MACHINE-{legacyId}` a zaloguje `warning` issue s doporučením doplnit skutečný Helios kód - žádný stroj se migrací neztratí ani nedostane tichý/nesmyslný kód.
+Legacy `machines` store (Krok 3 a dřív) neměl žádné pole pro kód - appka ho nikdy neukládala. Protože `Machine.code` je teď POVINNÉ pole domény, `migrate-machines.ts` (`src/infrastructure/migration/phases/migrate-machines.ts`) přidělí každému migrovanému stroji deterministický fallback `LEGACY-MACHINE-{legacyId}` a zaloguje `warning` issue s doporučením doplnit skutečný podnikový kód - žádný stroj se migrací neztratí ani nedostane tichý/nesmyslný kód.
 
 ## Neznámý kód nikdy nezaloží stroj
 

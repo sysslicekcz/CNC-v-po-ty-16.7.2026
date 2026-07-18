@@ -4,7 +4,7 @@ Viz `docs/adr/0017-shared-capacity-groups.md` pro rozhodnutí.
 
 ## Problém, který řeší
 
-Jeden fyzický stroj může mít v Heliosu víc různých kódů (typicky podle střediska). Appka potřebuje umět zachytit "tohle jsou různé Helios kódy téhož stroje", aniž by ztratila možnost odlišit je (různé zakázky/kalkulace mohly historicky použít různý kód).
+Jeden fyzický stroj může mít v podnikovém systému (ERP - Helios je jen jeden z možných příkladů, viz `docs/step-3-5/erp-integration.md`) víc různých kódů (typicky podle střediska). Appka potřebuje umět zachytit "tohle jsou různé podnikové kódy téhož stroje", aniž by ztratila možnost odlišit je (různé zakázky/kalkulace mohly historicky použít různý kód).
 
 ## Model
 

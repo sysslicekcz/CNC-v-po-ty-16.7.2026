@@ -5,7 +5,7 @@
 // při upgrade schématu.
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export type TpvStoreName =
   | "tpvCustomers"
@@ -30,7 +30,11 @@ export type TpvStoreName =
   | "tpvCapacityGroups"
   | "tpvExternalOperationResources"
   | "tpvLicenses"
-  | "tpvLicenseValidation";
+  | "tpvLicenseValidation"
+  | "tpvExternalSystems"
+  | "tpvExternalReferences"
+  | "tpvIntegrationRuns"
+  | "tpvIntegrationIssues";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -38,7 +42,10 @@ let dbPromise: Promise<IDBDatabase> | null = null;
  * Aditivní upgrade po `event.oldVersion` (stejný bezpečný vzor jako
  * src/lib/db.ts) - žádný store/index se nikdy neničí ani nepřepisuje, jen
  * přibývá. Krok 3.5 (verze 2) přidává tenant/licenční stores a rozšiřuje
- * `tpvMachines` o unikátní `[tenantId+code]` index (docs/adr/0015).
+ * `tpvMachines` o unikátní `[tenantId+code]` index (docs/adr/0015). Krok 3.5
+ * dodatek "ERP-nezávislá architektura" (verze 3) přidává ERP-neutrální
+ * integrační stores (docs/adr/erp-agnostic-integration-layer.md) - žádný z
+ * nich nezná jméno konkrétního ERP.
  */
 function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction): void {
   if (oldVersion < 1) {
@@ -113,7 +120,7 @@ function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction)
   }
 
   if (oldVersion < 2) {
-    // Krok 3.5 - tenant + Helios kódy + licence (viz docs/adr/0015, 0019, 0020).
+    // Krok 3.5 - tenant + podnikové kódy + licence (viz docs/adr/0015, 0019, 0020).
     // Nové indexy na JIŽ existujících stores lze za běhu onupgradeneeded přidat
     // jen přes store získaný z probíhající versionchange transakce, ne přes
     // db.createObjectStore (ta je jen pro nové stores).
@@ -166,6 +173,38 @@ function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction)
     licenseValidation.createIndex("status", "status");
     licenseValidation.createIndex("lastValidatedAt", "lastValidatedAt");
     licenseValidation.createIndex("gracePeriodUntil", "gracePeriodUntil");
+  }
+
+  if (oldVersion < 3) {
+    // Krok 3.5 dodatek - "ERP-nezávislá architektura". Appka nezná napevno
+    // žádný konkrétní ERP - `tpvExternalSystems`/`tpvExternalReferences` jsou
+    // stejné bez ohledu na to, jestli se appka připojí na Helios, SAP, K2,
+    // vlastní REST API nebo Excel/CSV výměnu (viz docs/adr/erp-agnostic-integration-layer.md).
+    const externalSystems = db.createObjectStore("tpvExternalSystems", { keyPath: "id" });
+    externalSystems.createIndex("tenantId", "tenantId");
+    externalSystems.createIndex("tenantId_code", ["tenantId", "code"], { unique: true });
+
+    const externalReferences = db.createObjectStore("tpvExternalReferences", { keyPath: "id" });
+    externalReferences.createIndex("tenantId", "tenantId");
+    externalReferences.createIndex("externalSystemId", "externalSystemId");
+    // `externalId` je nepovinný - záznamy bez něj se do tohohle indexu vůbec
+    // nezapíší (IndexedDB compound index vynechá záznam, pokud kterákoliv
+    // složka klíče chybí), takže "unique" tady hlídá jen unikátnost MEZI
+    // záznamy, které `externalId` mají - přesně požadovaná sémantika
+    // "stejné externalId smí nezávisle existovat ve dvou různých systémech".
+    externalReferences.createIndex(
+      "externalSystemId_externalEntityType_externalId",
+      ["externalSystemId", "externalEntityType", "externalId"],
+      { unique: true }
+    );
+
+    const integrationRuns = db.createObjectStore("tpvIntegrationRuns", { keyPath: "id" });
+    integrationRuns.createIndex("tenantId", "tenantId");
+    integrationRuns.createIndex("externalSystemId", "externalSystemId");
+
+    const integrationIssues = db.createObjectStore("tpvIntegrationIssues", { keyPath: "id" });
+    integrationIssues.createIndex("tenantId", "tenantId");
+    integrationIssues.createIndex("integrationRunId", "integrationRunId");
   }
 }
 

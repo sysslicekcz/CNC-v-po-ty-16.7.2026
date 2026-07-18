@@ -1,5 +1,5 @@
 import { FeatureAccessService } from "@/domain/licensing/feature-access-service";
-import { FeatureCode } from "@/domain/licensing/feature-code";
+import { LicenseFeatureCode } from "@/domain/licensing/feature-code";
 import { FeatureAccess, satisfiesAccess } from "@/domain/licensing/feature-access";
 import { LicenseLimitCode } from "@/domain/licensing/license-limit-code";
 import { License } from "@/domain/licensing/license";
@@ -28,12 +28,12 @@ export class DefaultFeatureAccessService implements FeatureAccessService {
     private readonly licenseProvider: LicenseProvider
   ) {}
 
-  async getAccess(feature: FeatureCode): Promise<FeatureAccess> {
+  async getAccess(feature: LicenseFeatureCode): Promise<FeatureAccess> {
     const license = await this.resolveActiveLicense();
     return license.getFeatureAccess(feature) ?? "none";
   }
 
-  async canUse(feature: FeatureCode, requiredAccess: FeatureAccess = "read"): Promise<boolean> {
+  async canUse(feature: LicenseFeatureCode, requiredAccess: FeatureAccess = "read"): Promise<boolean> {
     try {
       await this.require(feature, requiredAccess);
       return true;
@@ -42,7 +42,7 @@ export class DefaultFeatureAccessService implements FeatureAccessService {
     }
   }
 
-  async require(feature: FeatureCode, requiredAccess: FeatureAccess = "read"): Promise<void> {
+  async require(feature: LicenseFeatureCode, requiredAccess: FeatureAccess = "read"): Promise<void> {
     const access = await this.getAccess(feature);
     if (access === "none") {
       throw new FeatureNotLicensedError(feature);

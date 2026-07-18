@@ -20,11 +20,13 @@ export interface MachineProps {
 /**
  * Stroj je vlastní jednoduchý agregát (vlastní MachineRepository), ne vnitřní
  * entita něčeho jiného. `id` je interní stabilní identita (nikdy se neodvozuje
- * z `name` ani se nepřepisuje Helios kódem); `code` je uživatelsky zadávaný
- * výrobní/ERP kód, podle kterého bude párovat Helios (viz docs/adr/0015,
- * docs/adr/0016). Anglické názvy polí jsou záměrná výjimka z české konvence
- * zbytku domény - Krok 3.5 je zavádí explicitně kvůli budoucímu Helios
- * párování a licenčním datům (viz docs/audits/step-3-5-audit.md).
+ * z `name` ani se nepřepisuje kódem z žádného externího systému); `code` je
+ * uživatelsky zadávaný podnikový kód, podle kterého bude appka párovat s
+ * libovolným připojeným ERP (Helios je jen jeden možný příklad, viz
+ * docs/adr/0015, docs/adr/0016, docs/adr/erp-agnostic-integration-layer.md).
+ * Anglické názvy polí jsou záměrná výjimka z české konvence zbytku domény -
+ * Krok 3.5 je zavádí explicitně kvůli budoucímu ERP-neutrálnímu párování a
+ * licenčním datům (viz docs/audits/step-3-5-audit.md).
  *
  * Typ stroje se sem neukládá jako ručně zadané pole - odvozuje se z
  * MachineCapability přes services/machine-type-classifier.ts. Použito je přímo

@@ -7,7 +7,7 @@ Přijato
 Budoucí licenční tiery (mimo rozsah tohoto kroku - žádné platby/billing/subscription management) potřebují mít od začátku správný datový model, jinak každá nová úroveň licence vyžaduje zásah do kódu na desítkách míst (`if (planCode === "enterprise")`).
 
 ## Decision
-- `FeatureCode` (`src/domain/licensing/feature-code.ts`) - centrální, stabilní katalog "co appka umí" (`routing.view`, `machines.manage`, `integration.helios.sync`, ...). Jediný zdroj pravdy, žádné rovnocenné varianty stejné funkce.
+- `FeatureCode` (`src/domain/licensing/feature-code.ts`) - centrální, stabilní katalog "co appka umí" (`routing.view`, `machines.manage`, `integration.erp.sync`, ...) - integrační funkce jsou ERP-neutrální, žádné `integration.helios.*` (viz `docs/adr/erp-agnostic-integration-layer.md`). Jediný zdroj pravdy, žádné rovnocenné varianty stejné funkce.
 - `FeatureAccess` (`"none"|"read"|"write"|"full"`) - úroveň přístupu k jedné funkci, ne prostý boolean.
 - `LicenseLimitCode` - samostatný katalog číselných limitů (`machines.max`, `users.max`, ...), oddělený od feature přístupu.
 - `License` (`src/domain/licensing/license.ts`) drží `status`, `validFrom`/`validUntil`, seznam `LicensedFeature[]` a `LicenseLimit[]`. `planCode` je jen popisný štítek (pro zobrazení uživateli/fakturaci) - explicitně ZAKÁZANÝ vzor je `if (planCode === "enterprise") { ... }` kdekoliv v use casech. Zdroj pravdy je vždy kombinace `status` + platnost + `features` + `limits`.

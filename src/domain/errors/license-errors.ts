@@ -1,10 +1,10 @@
 import { DomainError } from "./domain-error";
-import { FeatureCode } from "../licensing/feature-code";
+import { LicenseFeatureCode } from "../licensing/feature-code";
 import { LicenseLimitCode } from "../licensing/license-limit-code";
 
 /** Organizace nemá licencovaný přístup k dané funkci vůbec. */
 export class FeatureNotLicensedError extends DomainError {
-  constructor(readonly featureCode: FeatureCode) {
+  constructor(readonly featureCode: LicenseFeatureCode) {
     super(`Funkce "${featureCode}" není součástí licence této organizace.`);
   }
 }
@@ -32,7 +32,7 @@ export class LicenseUnavailableError extends DomainError {
 
 /** Funkce je v licenci jen ke čtení ("read"), ale požaduje se zápis. */
 export class ReadOnlyLicenseError extends DomainError {
-  constructor(readonly featureCode: FeatureCode) {
+  constructor(readonly featureCode: LicenseFeatureCode) {
     super(`Funkce "${featureCode}" je v licenci dostupná jen pro čtení.`);
   }
 }
