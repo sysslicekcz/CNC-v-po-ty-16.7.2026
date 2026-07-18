@@ -9,6 +9,7 @@ export function toolMachineConditionToRecord(
 ): ToolMachineConditionRecord {
   return {
     id: condition.id,
+    tenantId: condition.tenantId,
     toolId: condition.toolId,
     machineId: condition.machineId,
     parameters: cuttingParametersToRecord(condition.parameters) ?? {},
@@ -24,6 +25,7 @@ export function toolMachineConditionToRecord(
 export function toolMachineConditionFromRecord(record: ToolMachineConditionRecord): ToolMachineCondition {
   return ToolMachineCondition.create({
     id: record.id,
+    tenantId: record.tenantId,
     toolId: record.toolId,
     machineId: record.machineId,
     parameters: cuttingParametersFromRecord(record.parameters) ?? CuttingParameters.of({}),

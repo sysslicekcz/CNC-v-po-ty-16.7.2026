@@ -2,6 +2,7 @@ import { CustomerRepository } from "@/domain/repositories/customer-repository";
 import { OrderRepository } from "@/domain/repositories/order-repository";
 import { PartRepository } from "@/domain/repositories/part-repository";
 import { MachineRepository } from "@/domain/repositories/machine-repository";
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 import { IndexedDbRoutingSheetRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-routing-sheet-repository";
 import { tpvGet } from "@/infrastructure/persistence/indexeddb/tpv-db";
 import { ActivityRecord } from "@/infrastructure/persistence/indexeddb/records";
@@ -152,7 +153,7 @@ export async function runPostValidationPhase(
   let machinesOk = 0;
   for (const machine of data.machines) {
     const newId = context.machineIdMap.get(machine.id);
-    const migrated = newId ? await repos.machines.findById(newId) : null;
+    const migrated = newId ? await repos.machines.findById(newId, DEFAULT_TENANT_ID) : null;
     if (migrated && migrated.hourlyRate.amount === machine.sazba) machinesOk++;
   }
   checks.push({

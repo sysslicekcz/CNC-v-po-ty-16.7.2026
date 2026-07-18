@@ -78,9 +78,11 @@ export interface CalcOutputRecord {
 
 export interface CalculationSnapshotRecord {
   machineId?: string;
+  machineCode?: string;
   machineName?: string;
   machineHourlyRate?: { amount: number; currency: string };
   toolId?: string;
+  toolCode?: string;
   toolName?: string;
   toolTypeId?: string;
   operationTypeId: string;

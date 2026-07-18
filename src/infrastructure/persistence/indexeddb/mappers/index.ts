@@ -9,3 +9,7 @@ export * from "./tool-mapper";
 export * from "./tool-type-mapper";
 export * from "./tool-machine-condition-mapper";
 export * from "./routing-sheet-mapper";
+export * from "./tenant-mapper";
+export * from "./capacity-group-mapper";
+export * from "./external-operation-resource-mapper";
+export * from "./license-mapper";

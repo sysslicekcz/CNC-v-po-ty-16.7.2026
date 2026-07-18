@@ -3,6 +3,7 @@ export type IssueSeverity = "info" | "warning" | "error" | "fatal";
 export interface MigrationIssueRecord {
   id: string;
   migrationRunId: string;
+  tenantId: string;
   severity: IssueSeverity;
   phase: string;
   code: string;
@@ -35,6 +36,7 @@ export type MigrationRunStatus =
 
 export interface MigrationRunRecord {
   id: string;
+  tenantId: string;
   migrationVersion: string;
   status: MigrationRunStatus;
   startedAt?: number;

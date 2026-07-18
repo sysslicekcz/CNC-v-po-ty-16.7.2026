@@ -10,6 +10,8 @@ import { IndexedDbToolRepository } from "@/infrastructure/persistence/indexeddb/
 import { IndexedDbToolTypeRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-tool-type-repository";
 import { IndexedDbToolMachineConditionRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-tool-machine-condition-repository";
 import { IndexedDbRoutingSheetRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-routing-sheet-repository";
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
+import { ensureDefaultTenantAndLicense } from "@/infrastructure/licensing/seed-default-tenant";
 import { readLegacySourceData, LegacySourceData } from "./legacy-source";
 import { MigrationContext } from "./context";
 import { runPreflightValidation } from "./phases/preflight";
@@ -63,6 +65,10 @@ export interface RunMigrationOptions {
  * dev nástroj (src/app/dev/tpv-migration) i pro testy.
  */
 export async function runMigrationEngine(options: RunMigrationOptions = {}): Promise<MigrationReport> {
+  // Migrovaná data patří výchozímu lokálnímu tenantovi (DEFAULT_TENANT_ID) -
+  // tenant a jeho licence musí existovat dřív, než cokoliv začne odkazovat na
+  // jeho tenantId (Krok 3.5, bod 26). Idempotentní, bezpečné volat opakovaně.
+  await ensureDefaultTenantAndLicense();
   await reconcileInterruptedRuns();
 
   const migrationRunId = newMigrationRunId();
@@ -71,6 +77,7 @@ export async function runMigrationEngine(options: RunMigrationOptions = {}): Pro
 
   let run: MigrationRunRecord = {
     id: migrationRunId,
+    tenantId: DEFAULT_TENANT_ID,
     migrationVersion: MIGRATION_VERSION,
     status: "pending",
     startedAt,
@@ -98,6 +105,7 @@ export async function runMigrationEngine(options: RunMigrationOptions = {}): Pro
       await tpvPut("tpvMigrationIssues", {
         id: `${migrationRunId}:${i}`,
         migrationRunId,
+        tenantId: DEFAULT_TENANT_ID,
         ...issue,
         createdAt: Date.now(),
       });

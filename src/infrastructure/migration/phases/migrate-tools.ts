@@ -1,6 +1,7 @@
 import { Tool } from "@/domain/entities/tool";
 import { ToolMachineCondition } from "@/domain/entities/tool-machine-condition";
 import { CuttingParameters } from "@/domain/value-objects/cutting-parameters";
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 import { IndexedDbToolRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-tool-repository";
 import { IndexedDbToolMachineConditionRepository } from "@/infrastructure/persistence/indexeddb/repositories/indexeddb-tool-machine-condition-repository";
 import { LegacySourceData } from "../legacy-source";
@@ -73,6 +74,7 @@ export async function runMigrateToolsPhase(
 
       const tool = Tool.create({
         id: toolId,
+        tenantId: DEFAULT_TENANT_ID,
         nazev,
         toolTypeId: TOOL_TYPE_FALLBACK_ID,
         stav: "aktivni",
@@ -81,6 +83,7 @@ export async function runMigrateToolsPhase(
 
       const condition = ToolMachineCondition.create({
         id: deterministicId("tool-machine-condition", legacyRowId),
+        tenantId: DEFAULT_TENANT_ID,
         toolId,
         machineId: newMachineId,
         parameters,

@@ -1,28 +1,43 @@
 import { ValidationError } from "../errors/validation-error";
 import { HourlyRate } from "../value-objects/hourly-rate";
-import { EntityStav } from "./common";
+import { MachineCode } from "../value-objects/machine-code";
+
+export type MachineStatus = "active" | "inactive";
 
 export interface MachineProps {
   id: string;
-  nazev: string;
-  oznaceni?: string;
-  maxOtacky?: number;
+  tenantId: string;
+  code: MachineCode;
+  name: string;
+  designation?: string;
+  maxRpm?: number;
   hourlyRate: HourlyRate;
-  stav: EntityStav;
-  poznamka?: string;
+  status: MachineStatus;
+  note?: string;
+  capacityGroupId?: string;
 }
 
-/** Stroj je vlastní jednoduchý agregát (vlastní MachineRepository), ne vnitřní
- *  entita něčeho jiného. Typ stroje se sem neukládá jako ručně zadané pole - odvozuje
- *  se z MachineCapability přes services/machine-type-classifier.ts (samostatný
- *  agregát, vlastní MachineCapabilityRepository - viz zadání, bod 13). Použito je
- *  přímo Machine, ne obecná abstrakce Resource - kooperace/měřidla/přípravky zatím
- *  neexistují, zavádět pro ně abstrakci předem by bylo předčasné (viz docs/adr/0010).*/
+/**
+ * Stroj je vlastní jednoduchý agregát (vlastní MachineRepository), ne vnitřní
+ * entita něčeho jiného. `id` je interní stabilní identita (nikdy se neodvozuje
+ * z `name` ani se nepřepisuje Helios kódem); `code` je uživatelsky zadávaný
+ * výrobní/ERP kód, podle kterého bude párovat Helios (viz docs/adr/0015,
+ * docs/adr/0016). Anglické názvy polí jsou záměrná výjimka z české konvence
+ * zbytku domény - Krok 3.5 je zavádí explicitně kvůli budoucímu Helios
+ * párování a licenčním datům (viz docs/audits/step-3-5-audit.md).
+ *
+ * Typ stroje se sem neukládá jako ručně zadané pole - odvozuje se z
+ * MachineCapability přes services/machine-type-classifier.ts. Použito je přímo
+ * Machine, ne obecná abstrakce Resource (docs/adr/0010) - kooperace se řeší
+ * samostatnou entitou ExternalOperationResource (docs/adr/0018), sdílená
+ * fyzická kapacita přes CapacityGroup (docs/adr/0017), ne sloučením strojů.
+ */
 export class Machine {
   private constructor(private props: MachineProps) {}
 
   static create(props: MachineProps): Machine {
-    if (!props.nazev.trim()) throw new ValidationError("Machine: 'nazev' nesmí být prázdný.");
+    if (!props.tenantId.trim()) throw new ValidationError("Machine: 'tenantId' nesmí být prázdné.");
+    if (!props.name.trim()) throw new ValidationError("Machine: 'name' nesmí být prázdné.");
     return new Machine({ ...props });
   }
 
@@ -33,30 +48,56 @@ export class Machine {
   get id(): string {
     return this.props.id;
   }
-  get nazev(): string {
-    return this.props.nazev;
+  get tenantId(): string {
+    return this.props.tenantId;
   }
-  get oznaceni(): string | undefined {
-    return this.props.oznaceni;
+  get code(): MachineCode {
+    return this.props.code;
   }
-  get maxOtacky(): number | undefined {
-    return this.props.maxOtacky;
+  get name(): string {
+    return this.props.name;
+  }
+  get designation(): string | undefined {
+    return this.props.designation;
+  }
+  get maxRpm(): number | undefined {
+    return this.props.maxRpm;
   }
   get hourlyRate(): HourlyRate {
     return this.props.hourlyRate;
   }
-  get stav(): EntityStav {
-    return this.props.stav;
+  get status(): MachineStatus {
+    return this.props.status;
   }
-  get poznamka(): string | undefined {
-    return this.props.poznamka;
+  get note(): string | undefined {
+    return this.props.note;
+  }
+  get capacityGroupId(): string | undefined {
+    return this.props.capacityGroupId;
+  }
+
+  /** Přejmenování nemění `id` ani `code` - žádná vazba (Operation.machineId)
+   *  se tím nerozbije. */
+  rename(name: string): void {
+    if (!name.trim()) throw new ValidationError("Machine: 'name' nesmí být prázdné.");
+    this.props.name = name;
+  }
+
+  /** Změna kódu nemění `id` - unikátnost nového kódu v rámci tenanta hlídá
+   *  use case (repository), ne entita samotná. */
+  changeCode(code: MachineCode): void {
+    this.props.code = code;
   }
 
   setHourlyRate(hourlyRate: HourlyRate): void {
     this.props.hourlyRate = hourlyRate;
   }
 
-  setStav(stav: EntityStav): void {
-    this.props.stav = stav;
+  setStatus(status: MachineStatus): void {
+    this.props.status = status;
+  }
+
+  assignToCapacityGroup(capacityGroupId: string | undefined): void {
+    this.props.capacityGroupId = capacityGroupId;
   }
 }

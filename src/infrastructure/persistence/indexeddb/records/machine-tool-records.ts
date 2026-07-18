@@ -5,14 +5,23 @@ export interface HourlyRateRecord {
   currency: string;
 }
 
+/** Anglické názvy polí (odchylka od zbytku perzistence) - zrcadlí doménovou
+ *  Machine (Krok 3.5, viz docs/audits/step-3-5-audit.md). `createdAt`/
+ *  `updatedAt` jsou perzistenční audit pole - doména Machine je nemá, spravuje
+ *  je repository (viz indexeddb-machine-repository.ts). */
 export interface MachineRecord extends LegacyMetadata {
   id: string;
-  nazev: string;
-  oznaceni?: string;
-  maxOtacky?: number;
+  tenantId: string;
+  code: string;
+  name: string;
+  designation?: string;
+  maxRpm?: number;
   hourlyRate: HourlyRateRecord;
-  stav: string;
-  poznamka?: string;
+  status: string;
+  note?: string;
+  capacityGroupId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CapabilityLimitationsRecord {
@@ -22,6 +31,7 @@ export interface CapabilityLimitationsRecord {
 
 export interface MachineCapabilityRecord extends LegacyMetadata {
   id: string;
+  tenantId: string;
   machineId: string;
   operationTypeId: string;
   enabled: boolean;
@@ -29,8 +39,12 @@ export interface MachineCapabilityRecord extends LegacyMetadata {
   limitations?: CapabilityLimitationsRecord;
 }
 
-/** Číselník - nemá legacy metadata, protože nevzniká z migrace 1:1, ale ze
- *  seedu (viz infrastructure/migration/operation-type-seed.ts). */
+/** Číselník - globální systémový, ne tenant-aware (zdokumentovaná výjimka,
+ *  viz docs/adr/0019): kategorie/typy operací jsou odvozené z pevné sady
+ *  vzorců výpočtového enginu (src/lib/operations.ts), ne z organizačních dat -
+ *  všichni tenanti dnes sdílejí stejný seed a appka nenabízí jejich úpravu.
+ *  Nemá legacy metadata, protože nevzniká z migrace 1:1, ale ze seedu (viz
+ *  infrastructure/migration/operation-type-seed.ts). */
 export interface OperationTypeRecord {
   id: string;
   kod: string;
@@ -48,6 +62,8 @@ export interface CuttingParametersRecord {
 
 export interface ToolRecord extends LegacyMetadata {
   id: string;
+  tenantId: string;
+  code?: string;
   nazev: string;
   toolTypeId: string;
   stav: string;
@@ -56,6 +72,7 @@ export interface ToolRecord extends LegacyMetadata {
   poznamka?: string;
 }
 
+/** Číselník - stejná výjimka jako OperationType výše (globální, ne tenant-aware). */
 export interface ToolTypeRecord {
   id: string;
   kod: string;
@@ -66,6 +83,7 @@ export interface ToolTypeRecord {
 
 export interface ToolMachineConditionRecord extends LegacyMetadata {
   id: string;
+  tenantId: string;
   toolId: string;
   machineId: string;
   parameters: CuttingParametersRecord;

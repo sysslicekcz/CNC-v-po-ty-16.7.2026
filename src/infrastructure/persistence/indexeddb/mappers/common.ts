@@ -32,6 +32,13 @@ function parseEnum<T extends string>(value: string, allowed: readonly T[], conte
   return value as T;
 }
 
+/** Veřejná varianta pro mappery entit mimo tenhle soubor (Tenant/CapacityGroup/
+ *  ExternalOperationResource/Machine/License status pole), aby si nemusely
+ *  psát vlastní kopii stejné validace. */
+export function parseEntityStavLike<T extends string>(value: string, allowed: readonly T[], context: string): T {
+  return parseEnum(value, allowed, context);
+}
+
 const ENTITY_STAV_VALUES = ["aktivni", "neaktivni"] as const;
 export function parseEntityStav(value: string, context: string): EntityStav {
   return parseEnum(value, ENTITY_STAV_VALUES, context);

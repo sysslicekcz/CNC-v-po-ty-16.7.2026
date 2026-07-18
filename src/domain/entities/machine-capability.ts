@@ -9,6 +9,7 @@ export interface CapabilityLimitations {
 
 export interface MachineCapabilityProps {
   id: string;
+  tenantId: string;
   machineId: string;
   operationTypeId: string;
   enabled: boolean;
@@ -25,6 +26,7 @@ export class MachineCapability {
   private constructor(private props: MachineCapabilityProps) {}
 
   static create(props: MachineCapabilityProps): MachineCapability {
+    if (!props.tenantId.trim()) throw new ValidationError("MachineCapability: 'tenantId' nesmí být prázdné.");
     if (!props.machineId.trim()) throw new ValidationError("MachineCapability: 'machineId' nesmí být prázdné.");
     if (!props.operationTypeId.trim()) {
       throw new ValidationError("MachineCapability: 'operationTypeId' nesmí být prázdné.");
@@ -34,6 +36,9 @@ export class MachineCapability {
 
   get id(): string {
     return this.props.id;
+  }
+  get tenantId(): string {
+    return this.props.tenantId;
   }
   get machineId(): string {
     return this.props.machineId;

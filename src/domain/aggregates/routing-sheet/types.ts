@@ -32,10 +32,12 @@ export type SerializedCuttingParameters = CuttingParametersProps;
  *  doména sama repozitáře nevolá - viz zadání, bod 10. */
 export interface CalculationSnapshot {
   machineId?: string;
+  machineCode?: string;
   machineName?: string;
   machineHourlyRate?: SerializedHourlyRate;
 
   toolId?: string;
+  toolCode?: string;
   toolName?: string;
   toolTypeId?: string;
 

@@ -1,16 +1,26 @@
-import { Machine } from "@/domain/entities/machine";
+import { Machine, MachineStatus } from "@/domain/entities/machine";
+import { MachineCode } from "@/domain/value-objects/machine-code";
 import { MachineRecord } from "../records";
-import { LegacyStamp, hourlyRateToRecord, hourlyRateFromRecord, parseEntityStav } from "./common";
+import { LegacyStamp, hourlyRateToRecord, hourlyRateFromRecord, parseEntityStavLike } from "./common";
 
-export function machineToRecord(machine: Machine, legacy: LegacyStamp = {}): MachineRecord {
+const STATUS_VALUES = ["active", "inactive"] as const satisfies readonly MachineStatus[];
+
+/** Bez createdAt/updatedAt - ta spravuje výhradně repository (audit pole, ne
+ *  součást domény, viz records/machine-tool-records.ts). */
+export type MachineRecordWithoutTimestamps = Omit<MachineRecord, "createdAt" | "updatedAt">;
+
+export function machineToRecord(machine: Machine, legacy: LegacyStamp = {}): MachineRecordWithoutTimestamps {
   return {
     id: machine.id,
-    nazev: machine.nazev,
-    oznaceni: machine.oznaceni,
-    maxOtacky: machine.maxOtacky,
+    tenantId: machine.tenantId,
+    code: machine.code.toString(),
+    name: machine.name,
+    designation: machine.designation,
+    maxRpm: machine.maxRpm,
     hourlyRate: hourlyRateToRecord(machine.hourlyRate),
-    stav: machine.stav,
-    poznamka: machine.poznamka,
+    status: machine.status,
+    note: machine.note,
+    capacityGroupId: machine.capacityGroupId,
     ...legacy,
   };
 }
@@ -18,11 +28,14 @@ export function machineToRecord(machine: Machine, legacy: LegacyStamp = {}): Mac
 export function machineFromRecord(record: MachineRecord): Machine {
   return Machine.restore({
     id: record.id,
-    nazev: record.nazev,
-    oznaceni: record.oznaceni,
-    maxOtacky: record.maxOtacky,
+    tenantId: record.tenantId,
+    code: MachineCode.create(record.code),
+    name: record.name,
+    designation: record.designation,
+    maxRpm: record.maxRpm,
     hourlyRate: hourlyRateFromRecord(record.hourlyRate),
-    stav: parseEntityStav(record.stav, "Machine"),
-    poznamka: record.poznamka,
+    status: parseEntityStavLike(record.status, STATUS_VALUES, "Machine.status"),
+    note: record.note,
+    capacityGroupId: record.capacityGroupId,
   });
 }
