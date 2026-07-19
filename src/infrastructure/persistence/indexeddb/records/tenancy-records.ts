@@ -14,12 +14,20 @@ export interface CapacityGroupRecord {
   note?: string;
 }
 
+export interface MoneyRecord {
+  amount: number;
+  currency: string;
+}
+
 export interface ExternalOperationResourceRecord {
   id: string;
   tenantId: string;
   code: string;
   name: string;
   supplierId?: string;
+  supportedOperationTypeIds?: string[];
+  defaultLeadTimeDays?: number;
+  defaultCost?: MoneyRecord;
   status: string;
   note?: string;
 }

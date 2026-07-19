@@ -16,3 +16,8 @@ export * from "./license-mapper";
 export * from "./external-system-mapper";
 export * from "./external-reference-mapper";
 export * from "./integration-mapper";
+export * from "./capability-type-mapper";
+export * from "./machine-capability-value-mapper";
+export * from "./operation-type-capability-requirement-mapper";
+export * from "./supplier-mapper";
+export * from "./material-mapper";

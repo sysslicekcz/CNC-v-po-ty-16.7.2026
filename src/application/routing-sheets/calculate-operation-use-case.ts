@@ -60,8 +60,8 @@ export class CalculateOperationUseCase {
     const activity = operation.getPosition(command.positionId).getActivity(command.activityId);
 
     const machine = operation.machineId ? await this.machineRepository.findById(operation.machineId, tenantId) : null;
-    const tool = activity.toolId ? await this.toolRepository.findById(activity.toolId) : null;
-    const operationType = await this.operationTypeRepository.findById(activity.operationTypeId);
+    const tool = activity.toolId ? await this.toolRepository.findById(activity.toolId, tenantId) : null;
+    const operationType = await this.operationTypeRepository.findById(activity.operationTypeId, tenantId);
 
     const result = this.calculationEngine.compute(command.calculationType, command.inputParameters, CURRENT_ALGORITHM_VERSION);
 

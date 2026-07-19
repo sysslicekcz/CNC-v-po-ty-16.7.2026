@@ -28,7 +28,12 @@ export interface RoutingSheetEditorState {
   availableMachines: Machine[];
   availableExternalResources: ExternalOperationResource[];
   operationTypes: OperationType[];
-  tools: Tool[];
+  /** Jen AKTIVNÍ nástroje (Krok 5, zadání bod 59-60, stejný princip jako
+   *  `availableMachines`/`availableExternalResources`) - neaktivní nástroj se
+   *  nenabízí pro NOVÉ přiřazení k činnosti. Nemá vliv na už přiřazené
+   *  nástroje - jejich název se zobrazuje z `activity.toolName` (DTO pole),
+   *  ne z tohohle seznamu. */
+  availableTools: Tool[];
 }
 
 const AUTOSAVE_DEBOUNCE_MS = 1500;
@@ -61,7 +66,7 @@ export function useRoutingSheetEditor() {
     availableMachines: [],
     availableExternalResources: [],
     operationTypes: [],
-    tools: [],
+    availableTools: [],
   });
 
   const recomputeDto = useCallback((markDirty: boolean) => {
@@ -90,8 +95,8 @@ export function useRoutingSheetEditor() {
     const [machines, externalResources, operationTypes, tools] = await Promise.all([
       deps.machineRepository.list(tenantId),
       deps.externalResourceRepository.list(tenantId),
-      deps.operationTypeRepository.findAll(),
-      deps.toolRepository.findAll(),
+      deps.operationTypeRepository.list(tenantId),
+      deps.toolRepository.list(tenantId),
     ]);
     return {
       machinesById: new Map(machines.map((m) => [m.id, m])),
@@ -125,7 +130,7 @@ export function useRoutingSheetEditor() {
         availableMachines: [...lookups.machinesById.values()].filter((m) => m.status === "active"),
         availableExternalResources: [...lookups.externalResourcesById.values()].filter((r) => r.status === "active"),
         operationTypes: [...lookups.operationTypesById.values()],
-        tools: [...lookups.toolsById.values()],
+        availableTools: [...lookups.toolsById.values()].filter((t) => t.stav === "aktivni"),
       });
     },
     [deps]

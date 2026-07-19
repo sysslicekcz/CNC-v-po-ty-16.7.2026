@@ -44,9 +44,13 @@ function externalResource(overrides: Partial<{ id: string; status: "active" | "i
 function operationType(overrides: Partial<{ id: string }> = {}): OperationType {
   return OperationType.create({
     id: overrides.id ?? "ot-1",
+    tenantId: "tenant:test",
     kod: "podelneVnejsi",
     nazev: "Podélné vnější",
     kategorie: "turning",
+    resourceRequirement: "machine",
+    requiresSetupTime: true,
+    requiresUnitTime: true,
     stav: "aktivni",
   });
 }

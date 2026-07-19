@@ -52,8 +52,8 @@ export class GetRoutingSheetEditorUseCase {
     const [machines, externalResources, operationTypes, tools] = await Promise.all([
       this.machineRepository.list(tenantId),
       this.externalResourceRepository.list(tenantId),
-      this.operationTypeRepository.findAll(),
-      this.toolRepository.findAll(),
+      this.operationTypeRepository.list(tenantId),
+      this.toolRepository.list(tenantId),
     ]);
 
     const machinesById = new Map<string, Machine>(machines.map((m) => [m.id, m]));

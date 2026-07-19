@@ -59,7 +59,7 @@ describe("Machine + MachineCapability repositories", () => {
     expect(found?.hourlyRate.currency).toBe("CZK");
     expect(found?.code.toString()).toBe("PUMA-700");
 
-    const capabilities = await capabilityRepo.findByMachineId("machine-1");
+    const capabilities = await capabilityRepo.findByMachineId("machine-1", DEFAULT_TENANT_ID);
     expect(capabilities).toHaveLength(2);
     expect(capabilities.find((c) => c.operationTypeId === "milling")?.enabled).toBe(false);
   });
@@ -186,14 +186,14 @@ describe("Tool + ToolMachineCondition repositories", () => {
       })
     );
 
-    const foundTool = await toolRepo.findById("tool-1");
+    const foundTool = await toolRepo.findById("tool-1", DEFAULT_TENANT_ID);
     expect(foundTool?.defaultCuttingParameters?.vc).toBe(180);
 
-    const conditionsForMachine1 = await conditionRepo.findByToolAndMachine("tool-1", "machine-1");
+    const conditionsForMachine1 = await conditionRepo.findByToolAndMachine("tool-1", "machine-1", DEFAULT_TENANT_ID);
     expect(conditionsForMachine1).toHaveLength(1);
     expect(conditionsForMachine1[0].parameters.vc).toBe(200);
 
-    const conditionsForMachine2 = await conditionRepo.findByToolAndMachine("tool-1", "machine-2");
+    const conditionsForMachine2 = await conditionRepo.findByToolAndMachine("tool-1", "machine-2", DEFAULT_TENANT_ID);
     expect(conditionsForMachine2).toHaveLength(1);
   });
 });

@@ -2,6 +2,7 @@ import { OperationTypeRepository } from "@/domain/repositories/operation-type-re
 import { ToolTypeRepository } from "@/domain/repositories/tool-type-repository";
 import { OperationType } from "@/domain/entities/operation-type";
 import { ToolType } from "@/domain/entities/tool-type";
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 import { MigrationContext } from "../context";
 import { buildOperationTypeSeed, buildOpIdToOperationTypeIdMap } from "../operation-type-seed";
 import { deterministicId } from "../id-mapping";
@@ -25,7 +26,7 @@ export async function runSeedReferenceDataPhase(
   toolTypeRepository: ToolTypeRepository,
   context: MigrationContext
 ): Promise<void> {
-  const operationTypes = buildOperationTypeSeed();
+  const operationTypes = buildOperationTypeSeed(DEFAULT_TENANT_ID);
   for (const operationType of operationTypes) {
     await operationTypeRepository.save(operationType);
     context.incrementCounter("created", "operationTypes");
@@ -36,9 +37,13 @@ export async function runSeedReferenceDataPhase(
 
   const unknownOperationType = OperationType.create({
     id: UNKNOWN_OPERATION_TYPE_ID,
+    tenantId: DEFAULT_TENANT_ID,
     kod: "unknown-legacy",
     nazev: "Neznámý legacy typ operace",
     kategorie: "other",
+    resourceRequirement: "machine",
+    requiresSetupTime: false,
+    requiresUnitTime: false,
     stav: "aktivni",
     popis: "Fallback pro legacy opId, který neodpovídá žádnému známému typu operace v aktuálním operations.ts.",
   });
@@ -47,8 +52,11 @@ export async function runSeedReferenceDataPhase(
 
   const fallbackToolType = ToolType.create({
     id: TOOL_TYPE_FALLBACK_ID,
+    tenantId: DEFAULT_TENANT_ID,
     kod: "obecny",
     nazev: "Obecný nástroj (typ nerozlišen v legacy datech)",
+    category: "other",
+    parameterDefinitions: [],
     stav: "aktivni",
   });
   await toolTypeRepository.save(fallbackToolType);

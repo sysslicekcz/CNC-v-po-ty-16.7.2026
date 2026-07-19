@@ -1,6 +1,13 @@
 import { ToolMachineCondition } from "@/domain/entities/tool-machine-condition";
 import { ToolMachineConditionRecord } from "../records";
-import { LegacyStamp, cuttingParametersToRecord, cuttingParametersFromRecord, parseEntityStav, parseMachiningMode } from "./common";
+import {
+  LegacyStamp,
+  cuttingParametersToRecord,
+  cuttingParametersFromRecord,
+  parseEntityStav,
+  parseMachiningMode,
+  parseCuttingConditionSource,
+} from "./common";
 import { CuttingParameters } from "@/domain/value-objects/cutting-parameters";
 
 export function toolMachineConditionToRecord(
@@ -18,12 +25,14 @@ export function toolMachineConditionToRecord(
     materialId: condition.materialId,
     machiningMode: condition.machiningMode,
     priority: condition.priority,
+    source: condition.source,
+    note: condition.note,
     ...legacy,
   };
 }
 
 export function toolMachineConditionFromRecord(record: ToolMachineConditionRecord): ToolMachineCondition {
-  return ToolMachineCondition.create({
+  return ToolMachineCondition.restore({
     id: record.id,
     tenantId: record.tenantId,
     toolId: record.toolId,
@@ -34,5 +43,7 @@ export function toolMachineConditionFromRecord(record: ToolMachineConditionRecor
     materialId: record.materialId,
     machiningMode: parseMachiningMode(record.machiningMode),
     priority: record.priority,
+    source: parseCuttingConditionSource(record.source),
+    note: record.note,
   });
 }

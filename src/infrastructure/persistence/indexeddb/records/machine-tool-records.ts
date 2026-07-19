@@ -15,7 +15,11 @@ export interface MachineRecord extends LegacyMetadata {
   code: string;
   name: string;
   designation?: string;
+  category?: string;
+  manufacturer?: string;
+  model?: string;
   maxRpm?: number;
+  maxPowerKw?: number;
   hourlyRate: HourlyRateRecord;
   status: string;
   note?: string;
@@ -39,17 +43,19 @@ export interface MachineCapabilityRecord extends LegacyMetadata {
   limitations?: CapabilityLimitationsRecord;
 }
 
-/** Číselník - globální systémový, ne tenant-aware (zdokumentovaná výjimka,
- *  viz docs/adr/0019): kategorie/typy operací jsou odvozené z pevné sady
- *  vzorců výpočtového enginu (src/lib/operations.ts), ne z organizačních dat -
- *  všichni tenanti dnes sdílejí stejný seed a appka nenabízí jejich úpravu.
- *  Nemá legacy metadata, protože nevzniká z migrace 1:1, ale ze seedu (viz
- *  infrastructure/migration/operation-type-seed.ts). */
+/** Číselník - od Kroku 5 tenant-aware (dřív globální, viz docs/audits/step-5-audit.md,
+ *  riziko migrace č. 1 - DB verze 4 -> 5 dobackfilluje `tenantId` na existujících
+ *  záznamech). Nemá legacy metadata, protože nevzniká z migrace 1:1, ale ze seedu
+ *  (viz infrastructure/migration/operation-type-seed.ts). */
 export interface OperationTypeRecord {
   id: string;
+  tenantId: string;
   kod: string;
   nazev: string;
   kategorie: string;
+  resourceRequirement: string;
+  requiresSetupTime: boolean;
+  requiresUnitTime: boolean;
   stav: string;
   popis?: string;
 }
@@ -60,23 +66,38 @@ export interface CuttingParametersRecord {
   ap?: number;
 }
 
+export interface ToolParameterDefinitionRecord {
+  key: string;
+  name: string;
+  valueType: string;
+  unit?: string;
+  required: boolean;
+  allowedValues?: string[];
+}
+
 export interface ToolRecord extends LegacyMetadata {
   id: string;
   tenantId: string;
   code?: string;
   nazev: string;
   toolTypeId: string;
+  manufacturer?: string;
+  designation?: string;
+  parameters?: Record<string, string | number | boolean>;
   stav: string;
   radius?: number;
   defaultCuttingParameters?: CuttingParametersRecord;
   poznamka?: string;
 }
 
-/** Číselník - stejná výjimka jako OperationType výše (globální, ne tenant-aware). */
+/** Číselník - od Kroku 5 tenant-aware, stejná výjimka jako OperationType výše. */
 export interface ToolTypeRecord {
   id: string;
+  tenantId: string;
   kod: string;
   nazev: string;
+  category: string;
+  parameterDefinitions: ToolParameterDefinitionRecord[];
   stav: string;
   popis?: string;
 }
@@ -92,4 +113,6 @@ export interface ToolMachineConditionRecord extends LegacyMetadata {
   materialId?: string;
   machiningMode?: string;
   priority?: number;
+  source?: string;
+  note?: string;
 }

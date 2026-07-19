@@ -12,6 +12,13 @@ export interface UpdateMachineInput {
   name?: string;
   code?: string;
   hourlyRate?: HourlyRate;
+  designation?: string;
+  category?: Machine["category"];
+  manufacturer?: string;
+  model?: string;
+  maxRpm?: number;
+  maxPowerKw?: number;
+  note?: string;
 }
 
 /** Přejmenování/změna kódu NIKDY nemění `Machine.id` a nesahá na historické
@@ -53,6 +60,16 @@ export class UpdateMachineUseCase {
     if (changes.hourlyRate !== undefined) {
       machine.setHourlyRate(changes.hourlyRate);
     }
+
+    machine.updateDetails({
+      designation: changes.designation,
+      category: changes.category,
+      manufacturer: changes.manufacturer,
+      model: changes.model,
+      maxRpm: changes.maxRpm,
+      maxPowerKw: changes.maxPowerKw,
+      note: changes.note,
+    });
 
     await this.machineRepository.save(machine);
     return machine;

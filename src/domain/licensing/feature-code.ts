@@ -24,6 +24,12 @@ export type FeatureCode =
   | "tools.manage"
   | "cooperations.view"
   | "cooperations.manage"
+  | "operation_types.view"
+  | "operation_types.manage"
+  | "cutting_conditions.view"
+  | "cutting_conditions.manage"
+  | "materials.view"
+  | "materials.manage"
   | "planning.view"
   | "planning.edit"
   | "planning.auto_schedule"
@@ -63,6 +69,12 @@ export const FeatureCodes = {
   ToolsManage: "tools.manage",
   CooperationsView: "cooperations.view",
   CooperationsManage: "cooperations.manage",
+  OperationTypesView: "operation_types.view",
+  OperationTypesManage: "operation_types.manage",
+  CuttingConditionsView: "cutting_conditions.view",
+  CuttingConditionsManage: "cutting_conditions.manage",
+  MaterialsView: "materials.view",
+  MaterialsManage: "materials.manage",
   PlanningView: "planning.view",
   PlanningEdit: "planning.edit",
   PlanningAutoSchedule: "planning.auto_schedule",

@@ -1,7 +1,9 @@
 import { ValidationError } from "../errors/validation-error";
 import { ExternalResourceCode } from "../value-objects/external-resource-code";
+import { Money } from "../value-objects/money";
+import { MasterDataStatus } from "./master-data-status";
 
-export type ExternalResourceStatus = "active" | "inactive";
+export type ExternalResourceStatus = MasterDataStatus;
 
 export interface ExternalOperationResourceProps {
   id: string;
@@ -9,6 +11,12 @@ export interface ExternalOperationResourceProps {
   code: ExternalResourceCode;
   name: string;
   supplierId?: string;
+  /** Které typy operací tahle kooperace typicky pokrývá (Krok 5, zadání bod 15) -
+   *  informativní filtr pro editor postupu, ne tvrdé omezení (kooperaci lze
+   *  přiřadit operaci i mimo tenhle seznam). */
+  supportedOperationTypeIds?: string[];
+  defaultLeadTimeDays?: number;
+  defaultCost?: Money;
   status: ExternalResourceStatus;
   note?: string;
 }
@@ -51,6 +59,15 @@ export class ExternalOperationResource {
   get supplierId(): string | undefined {
     return this.props.supplierId;
   }
+  get supportedOperationTypeIds(): readonly string[] | undefined {
+    return this.props.supportedOperationTypeIds;
+  }
+  get defaultLeadTimeDays(): number | undefined {
+    return this.props.defaultLeadTimeDays;
+  }
+  get defaultCost(): Money | undefined {
+    return this.props.defaultCost;
+  }
   get status(): ExternalResourceStatus {
     return this.props.status;
   }
@@ -60,5 +77,28 @@ export class ExternalOperationResource {
 
   setStatus(status: ExternalResourceStatus): void {
     this.props.status = status;
+  }
+
+  rename(name: string): void {
+    if (!name.trim()) throw new ValidationError("ExternalOperationResource: 'name' nesmí být prázdné.");
+    this.props.name = name;
+  }
+
+  changeCode(code: ExternalResourceCode): void {
+    this.props.code = code;
+  }
+
+  updateDetails(input: {
+    supplierId?: string;
+    supportedOperationTypeIds?: string[];
+    defaultLeadTimeDays?: number;
+    defaultCost?: Money;
+    note?: string;
+  }): void {
+    if (input.supplierId !== undefined) this.props.supplierId = input.supplierId || undefined;
+    if (input.supportedOperationTypeIds !== undefined) this.props.supportedOperationTypeIds = input.supportedOperationTypeIds;
+    if (input.defaultLeadTimeDays !== undefined) this.props.defaultLeadTimeDays = input.defaultLeadTimeDays;
+    if (input.defaultCost !== undefined) this.props.defaultCost = input.defaultCost;
+    if (input.note !== undefined) this.props.note = input.note || undefined;
   }
 }

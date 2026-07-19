@@ -154,7 +154,7 @@ export function RoutingSheetEditorPage({ routingSheetId }: RoutingSheetEditorPag
                 machines={editor.state.availableMachines}
                 externalResources={editor.state.availableExternalResources}
                 operationTypes={editor.state.operationTypes}
-                tools={editor.state.tools}
+                tools={editor.state.availableTools}
                 canUseCooperations={canUseCooperations}
                 readOnly={readOnly}
                 issues={routingSheet.validationIssues.filter((i) => i.operationId === selectedOperation.id)}

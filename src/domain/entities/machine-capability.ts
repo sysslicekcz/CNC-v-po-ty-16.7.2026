@@ -59,4 +59,12 @@ export class MachineCapability {
   setEnabled(enabled: boolean): void {
     this.props.enabled = enabled;
   }
+
+  setPriority(priority: number | undefined): void {
+    this.props.priority = priority;
+  }
+
+  setLimitations(limitations: CapabilityLimitations | undefined): void {
+    this.props.limitations = limitations;
+  }
 }

@@ -4,8 +4,14 @@
 // stará appka a src/lib/db.ts zůstávají zcela nedotčené, žádné riziko kolize
 // při upgrade schématu.
 
+import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
+
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
+/** Použito jen k backfillu Kroku 5 (viz `upgrade()`, `oldVersion < 5`) - appka
+ *  dosud běží s jediným výchozím tenantem, takže existující OperationType/
+ *  ToolType záznamy patří logicky jemu. */
+const BACKFILL_TENANT_ID = DEFAULT_TENANT_ID;
 
 export type TpvStoreName =
   | "tpvCustomers"
@@ -35,7 +41,13 @@ export type TpvStoreName =
   | "tpvExternalReferences"
   | "tpvIntegrationRuns"
   | "tpvIntegrationIssues"
-  | "tpvReleasedRoutingSheetSnapshots";
+  | "tpvReleasedRoutingSheetSnapshots"
+  | "tpvCapabilityTypes"
+  | "tpvMachineCapabilityValues"
+  | "tpvOperationTypeCapabilityRequirements"
+  | "tpvSuppliers"
+  | "tpvMaterialGroups"
+  | "tpvMaterials";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -48,7 +60,9 @@ let dbPromise: Promise<IDBDatabase> | null = null;
  * integrační stores (docs/adr/erp-agnostic-integration-layer.md) - žádný z
  * nich nezná jméno konkrétního ERP.
  */
-function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction): void {
+/** Exportováno JEN kvůli testovatelnosti upgrade cesty (viz tpv-db-upgrade.test.ts) -
+ *  appka sama volá výhradně přes `openTpvDb()`. */
+export function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction): void {
   if (oldVersion < 1) {
     const customers = db.createObjectStore("tpvCustomers", { keyPath: "id" });
     customers.createIndex("legacyId", "legacyId");
@@ -225,6 +239,90 @@ function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTransaction)
     const releasedSnapshots = db.createObjectStore("tpvReleasedRoutingSheetSnapshots", { keyPath: "routingSheetId" });
     releasedSnapshots.createIndex("tenantId", "tenantId");
     releasedSnapshots.createIndex("partId", "partId");
+  }
+
+  if (oldVersion < 5) {
+    // Krok 5 - správa kmenových dat. `tpvOperationTypes`/`tpvToolTypes` byly
+    // dosud globální (seedovaný číselník bez tenantId, viz docs/audits/step-5-audit.md,
+    // riziko migrace č. 1) - Krok 5 z nich dělá editovatelná kmenová data, takže
+    // MUSÍ dostat tenant scope. Na rozdíl od ostatních aditivních upgradů výš
+    // tenhle blok existující záznamy i BACKFILLUJE (přečte je a přepíše s
+    // doplněným tenantId), ne jen přidá prázdný index - bezpečné, protože jde o
+    // malý, dopředu známý deterministicky seedovaný číselník, ne libovolně
+    // velká uživatelská data.
+    const operationTypesStore = upgradeTx.objectStore("tpvOperationTypes");
+    if (!operationTypesStore.indexNames.contains("tenantId")) {
+      operationTypesStore.createIndex("tenantId", "tenantId");
+    }
+    if (!operationTypesStore.indexNames.contains("tenantId_kod")) {
+      operationTypesStore.createIndex("tenantId_kod", ["tenantId", "kod"], { unique: true });
+    }
+    operationTypesStore.openCursor().onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      const record = cursor.value as Record<string, unknown>;
+      if (record.tenantId === undefined) {
+        cursor.update({
+          ...record,
+          tenantId: BACKFILL_TENANT_ID,
+          resourceRequirement: record.resourceRequirement ?? "machine",
+          requiresSetupTime: record.requiresSetupTime ?? true,
+          requiresUnitTime: record.requiresUnitTime ?? true,
+        });
+      }
+      cursor.continue();
+    };
+
+    const toolTypesStore = upgradeTx.objectStore("tpvToolTypes");
+    if (!toolTypesStore.indexNames.contains("tenantId")) {
+      toolTypesStore.createIndex("tenantId", "tenantId");
+    }
+    if (!toolTypesStore.indexNames.contains("tenantId_kod")) {
+      toolTypesStore.createIndex("tenantId_kod", ["tenantId", "kod"], { unique: true });
+    }
+    toolTypesStore.openCursor().onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      const record = cursor.value as Record<string, unknown>;
+      if (record.tenantId === undefined) {
+        cursor.update({
+          ...record,
+          tenantId: BACKFILL_TENANT_ID,
+          category: record.category ?? "other",
+          parameterDefinitions: record.parameterDefinitions ?? [],
+        });
+      }
+      cursor.continue();
+    };
+
+    const capabilityTypes = db.createObjectStore("tpvCapabilityTypes", { keyPath: "id" });
+    capabilityTypes.createIndex("tenantId", "tenantId");
+    capabilityTypes.createIndex("tenantId_code", ["tenantId", "code"], { unique: true });
+
+    const machineCapabilityValues = db.createObjectStore("tpvMachineCapabilityValues", { keyPath: "id" });
+    machineCapabilityValues.createIndex("tenantId", "tenantId");
+    machineCapabilityValues.createIndex("machineId", "machineId");
+    machineCapabilityValues.createIndex("capabilityTypeId", "capabilityTypeId");
+    machineCapabilityValues.createIndex("machineId_capabilityTypeId", ["machineId", "capabilityTypeId"], { unique: true });
+
+    const operationTypeCapabilityRequirements = db.createObjectStore("tpvOperationTypeCapabilityRequirements", {
+      keyPath: "id",
+    });
+    operationTypeCapabilityRequirements.createIndex("tenantId", "tenantId");
+    operationTypeCapabilityRequirements.createIndex("operationTypeId", "operationTypeId");
+
+    const suppliers = db.createObjectStore("tpvSuppliers", { keyPath: "id" });
+    suppliers.createIndex("tenantId", "tenantId");
+    suppliers.createIndex("tenantId_code", ["tenantId", "code"]); // code je nepovinný -> ne unique
+
+    const materialGroups = db.createObjectStore("tpvMaterialGroups", { keyPath: "id" });
+    materialGroups.createIndex("tenantId", "tenantId");
+    materialGroups.createIndex("tenantId_code", ["tenantId", "code"], { unique: true });
+
+    const materials = db.createObjectStore("tpvMaterials", { keyPath: "id" });
+    materials.createIndex("tenantId", "tenantId");
+    materials.createIndex("tenantId_code", ["tenantId", "code"], { unique: true });
+    materials.createIndex("materialGroupId", "materialGroupId");
   }
 }
 

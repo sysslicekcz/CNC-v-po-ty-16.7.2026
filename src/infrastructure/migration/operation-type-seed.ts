@@ -1,4 +1,4 @@
-import { OperationType, OperationCategory } from "@/domain/entities/operation-type";
+import { OperationType, OperationCategory, OperationTypeResourceRequirement } from "@/domain/entities/operation-type";
 import { OPERATIONS } from "@/lib/operations";
 import { deterministicId } from "./id-mapping";
 
@@ -32,20 +32,40 @@ const CATEGORY_BY_OP_ID: Record<string, OperationCategory> = {
   pripravneCasy: "preparation",
 };
 
+/** Přípravné časy nepotřebují zdroj (dostupné na každém stroji), ostatní
+ *  kategorie potřebují stroj a mají smysluplný kusový i přípravný čas (Krok 5,
+ *  zadání bod 12) - zdokumentovaný předpoklad pro SEEDOVANÁ data, uživatelem
+ *  založené typy operací si `resourceRequirement` volí ve formuláři. */
+const RESOURCE_REQUIREMENT_BY_CATEGORY: Record<OperationCategory, OperationTypeResourceRequirement> = {
+  turning: "machine",
+  milling: "machine",
+  grinding: "machine",
+  cutting: "machine",
+  inspection: "either",
+  ndt: "either",
+  preparation: "machine",
+  other: "machine",
+};
+
 export function operationTypeSeedId(opId: string): string {
   return deterministicId("operation-type", opId);
 }
 
-export function buildOperationTypeSeed(): OperationType[] {
-  return OPERATIONS.map((op) =>
-    OperationType.create({
+export function buildOperationTypeSeed(tenantId: string): OperationType[] {
+  return OPERATIONS.map((op) => {
+    const kategorie = CATEGORY_BY_OP_ID[op.id] ?? "other";
+    return OperationType.create({
       id: operationTypeSeedId(op.id),
+      tenantId,
       kod: op.id,
       nazev: op.title,
-      kategorie: CATEGORY_BY_OP_ID[op.id] ?? "other",
+      kategorie,
+      resourceRequirement: RESOURCE_REQUIREMENT_BY_CATEGORY[kategorie],
+      requiresSetupTime: true,
+      requiresUnitTime: kategorie !== "preparation",
       stav: "aktivni",
-    })
-  );
+    });
+  });
 }
 
 /** Namapuje libovolný legacy opId na id seedovaného OperationType. Neznámé opId

@@ -1,8 +1,24 @@
 import { ValidationError } from "../errors/validation-error";
 import { HourlyRate } from "../value-objects/hourly-rate";
 import { MachineCode } from "../value-objects/machine-code";
+import { MasterDataStatus } from "./master-data-status";
 
-export type MachineStatus = "active" | "inactive";
+export type MachineStatus = MasterDataStatus;
+
+/** Kategorie stroje (Krok 5, zadání bod 5) - volitelné doplňkové zařazení k
+ *  ODVOZENÉMU typu z `machine-type-classifier.ts` (ten zůstává zdrojem pravdy
+ *  pro zobrazovaný "typ stroje" podle capability/operation types). `category`
+ *  je jen uživatelem zadaná klasifikace pro filtrování v seznamu, ne náhrada. */
+export type MachineCategory =
+  | "lathe"
+  | "milling"
+  | "turn_mill"
+  | "grinding"
+  | "drilling"
+  | "saw"
+  | "inspection"
+  | "assembly"
+  | "other";
 
 export interface MachineProps {
   id: string;
@@ -10,7 +26,11 @@ export interface MachineProps {
   code: MachineCode;
   name: string;
   designation?: string;
+  category?: MachineCategory;
+  manufacturer?: string;
+  model?: string;
   maxRpm?: number;
+  maxPowerKw?: number;
   hourlyRate: HourlyRate;
   status: MachineStatus;
   note?: string;
@@ -62,8 +82,20 @@ export class Machine {
   get designation(): string | undefined {
     return this.props.designation;
   }
+  get category(): MachineCategory | undefined {
+    return this.props.category;
+  }
+  get manufacturer(): string | undefined {
+    return this.props.manufacturer;
+  }
+  get model(): string | undefined {
+    return this.props.model;
+  }
   get maxRpm(): number | undefined {
     return this.props.maxRpm;
+  }
+  get maxPowerKw(): number | undefined {
+    return this.props.maxPowerKw;
   }
   get hourlyRate(): HourlyRate {
     return this.props.hourlyRate;
@@ -89,6 +121,29 @@ export class Machine {
    *  use case (repository), ne entita samotná. */
   changeCode(code: MachineCode): void {
     this.props.code = code;
+  }
+
+  /** Popisná pole beze změny identity/kódu/stavu (Krok 5) - `undefined` v
+   *  argumentu znamená "nezadáno v tomhle volání", ne "smaž hodnotu"; pro
+   *  smazání volitelného pole zavolej s prázdným řetězcem/`undefined` explicitně
+   *  na vlastnosti, kterou chceš vyprázdnit (stejný vzor jako
+   *  `RoutingSheet.updateHeader`). */
+  updateDetails(input: {
+    designation?: string;
+    category?: MachineCategory;
+    manufacturer?: string;
+    model?: string;
+    maxRpm?: number;
+    maxPowerKw?: number;
+    note?: string;
+  }): void {
+    if (input.designation !== undefined) this.props.designation = input.designation || undefined;
+    if (input.category !== undefined) this.props.category = input.category;
+    if (input.manufacturer !== undefined) this.props.manufacturer = input.manufacturer || undefined;
+    if (input.model !== undefined) this.props.model = input.model || undefined;
+    if (input.maxRpm !== undefined) this.props.maxRpm = input.maxRpm;
+    if (input.maxPowerKw !== undefined) this.props.maxPowerKw = input.maxPowerKw;
+    if (input.note !== undefined) this.props.note = input.note || undefined;
   }
 
   setHourlyRate(hourlyRate: HourlyRate): void {

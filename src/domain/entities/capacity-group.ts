@@ -1,7 +1,8 @@
 import { ValidationError } from "../errors/validation-error";
 import { CapacityGroupCode } from "../value-objects/capacity-group-code";
+import { MasterDataStatus } from "./master-data-status";
 
-export type CapacityGroupStatus = "active" | "inactive";
+export type CapacityGroupStatus = MasterDataStatus;
 
 export interface CapacityGroupProps {
   id: string;
@@ -54,6 +55,14 @@ export class CapacityGroup {
   rename(name: string): void {
     if (!name.trim()) throw new ValidationError("CapacityGroup: 'name' nesmí být prázdné.");
     this.props.name = name;
+  }
+
+  changeCode(code: CapacityGroupCode): void {
+    this.props.code = code;
+  }
+
+  setNote(note: string | undefined): void {
+    this.props.note = note || undefined;
   }
 
   setStatus(status: CapacityGroupStatus): void {

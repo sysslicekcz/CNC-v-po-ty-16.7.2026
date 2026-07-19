@@ -3,16 +3,18 @@ import { ToolMachineCondition } from "@/domain/entities/tool-machine-condition";
 import { ToolMachineConditionRecord } from "../records";
 import { toolMachineConditionToRecord, toolMachineConditionFromRecord } from "../mappers/tool-machine-condition-mapper";
 import { LegacyStamp } from "../mappers/common";
-import { tpvGetAll, tpvGetAllByIndex, tpvGet, tpvPut, tpvDelete } from "../tpv-db";
+import { tpvGetAllByIndex, tpvGet, tpvPut, tpvDelete } from "../tpv-db";
 
+/** Tenant-scoped od Kroku 5 - stejný důvod jako IndexedDbMachineCapabilityRepository. */
 export class IndexedDbToolMachineConditionRepository implements ToolMachineConditionRepository {
-  async findById(id: string): Promise<ToolMachineCondition | null> {
+  async findById(id: string, tenantId: string): Promise<ToolMachineCondition | null> {
     const record = await tpvGet<ToolMachineConditionRecord>("tpvToolMachineConditions", id);
-    return record ? toolMachineConditionFromRecord(record) : null;
+    if (!record || record.tenantId !== tenantId) return null;
+    return toolMachineConditionFromRecord(record);
   }
 
-  async findAll(): Promise<ToolMachineCondition[]> {
-    const records = await tpvGetAll<ToolMachineConditionRecord>("tpvToolMachineConditions");
+  async list(tenantId: string): Promise<ToolMachineCondition[]> {
+    const records = await tpvGetAllByIndex<ToolMachineConditionRecord>("tpvToolMachineConditions", "tenantId", tenantId);
     return records.map(toolMachineConditionFromRecord);
   }
 
@@ -32,12 +34,19 @@ export class IndexedDbToolMachineConditionRepository implements ToolMachineCondi
     await tpvPut("tpvToolMachineConditions", toolMachineConditionToRecord(condition, stamp));
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, tenantId: string): Promise<void> {
+    const existing = await tpvGet<ToolMachineConditionRecord>("tpvToolMachineConditions", id);
+    if (!existing || existing.tenantId !== tenantId) return;
     await tpvDelete("tpvToolMachineConditions", id);
   }
 
-  async findByToolAndMachine(toolId: string, machineId: string): Promise<ToolMachineCondition[]> {
+  async findByToolAndMachine(toolId: string, machineId: string, tenantId: string): Promise<ToolMachineCondition[]> {
     const records = await tpvGetAllByIndex<ToolMachineConditionRecord>("tpvToolMachineConditions", "toolId", toolId);
-    return records.filter((r) => r.machineId === machineId).map(toolMachineConditionFromRecord);
+    return records.filter((r) => r.machineId === machineId && r.tenantId === tenantId).map(toolMachineConditionFromRecord);
+  }
+
+  async findByToolId(toolId: string, tenantId: string): Promise<ToolMachineCondition[]> {
+    const records = await tpvGetAllByIndex<ToolMachineConditionRecord>("tpvToolMachineConditions", "toolId", toolId);
+    return records.filter((r) => r.tenantId === tenantId).map(toolMachineConditionFromRecord);
   }
 }

@@ -6,4 +6,8 @@ export type LicenseLimitCode =
   | "routingSheets.active.max"
   | "calculations.monthly.max"
   | "storage.mb.max"
-  | "integrations.systems.max";
+  | "integrations.systems.max"
+  | "tools.max"
+  | "capacityGroups.max"
+  | "externalResources.max"
+  | "operationTypes.max";

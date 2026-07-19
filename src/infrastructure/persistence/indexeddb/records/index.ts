@@ -5,3 +5,4 @@ export * from "./machine-tool-records";
 export * from "./migration-records";
 export * from "./tenancy-records";
 export * from "./integration-records";
+export * from "./master-data-catalog-records";
