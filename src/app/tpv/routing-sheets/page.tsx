@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRoutingSheetEditorDependencies } from "@/presentation/routing-sheets/routing-sheet-editor-dependencies";
 import { useFeatureAccessSnapshot } from "@/presentation/routing-sheets/use-feature-access-snapshot";
+import { ensureAppBootstrapped } from "@/presentation/bootstrap/ensure-app-bootstrapped";
 import { FeatureGate } from "@/presentation/components/feature-gate";
 import { FeatureUnavailableNotice } from "@/presentation/components/feature-unavailable-notice";
 import { FeatureCodes } from "@/domain/licensing/feature-code";
@@ -31,8 +32,8 @@ export default function RoutingSheetsListPage() {
 
   useEffect(() => {
     let cancelled = false;
-    deps.listRoutingSheetsUseCase
-      .execute()
+    ensureAppBootstrapped()
+      .then(() => deps.listRoutingSheetsUseCase.execute())
       .then((result) => {
         if (!cancelled) setItems(result);
       })

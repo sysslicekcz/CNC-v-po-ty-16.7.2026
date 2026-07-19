@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
 import { ConfirmDialog } from "@/presentation/master-data/components/confirm-dialog";
 import { describeMasterDataError } from "@/presentation/master-data/master-data-error-messages";
@@ -191,7 +192,14 @@ export default function CooperationsPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!resources && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {resources && filtered.length === 0 && <p className="text-sm text-muted">Žádný záznam neodpovídá filtru.</p>}
+          {resources && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={resources.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné kooperace. Kooperace jsou externí zpracování (tepelné zpracování, NDT, …) prováděná u dodavatele."
+              onAdd={canManage ? () => setResourcePanel({ kind: "create" }) : undefined}
+              addLabel="+ Nová kooperace"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

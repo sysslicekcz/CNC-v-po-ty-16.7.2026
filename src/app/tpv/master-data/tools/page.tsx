@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
 import { describeMasterDataError } from "@/presentation/master-data/master-data-error-messages";
 import { Tool, ToolParameterValue } from "@/domain/entities/tool";
@@ -186,7 +187,14 @@ export default function ToolsPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!tools && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {tools && filtered.length === 0 && <p className="text-sm text-muted">Žádný záznam neodpovídá filtru.</p>}
+          {tools && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={tools.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné nástroje. Nástroje se přiřazují k operacím a mají řezné podmínky pro konkrétní stroj."
+              onAdd={canManage && toolTypes.length > 0 ? () => setToolPanel({ kind: "create" }) : undefined}
+              addLabel="+ Nový nástroj"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
 import { describeMasterDataError } from "@/presentation/master-data/master-data-error-messages";
 import { Material } from "@/domain/entities/material";
@@ -197,7 +198,15 @@ export default function MaterialsPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!materials && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {materials && filtered.length === 0 && <p className="text-sm text-muted">Žádný materiál neodpovídá filtru.</p>}
+          {materials && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={materials.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné materiály. Materiály se používají při výpočtu řezných podmínek."
+              noMatchMessage="Žádný materiál neodpovídá filtru."
+              onAdd={canManage && groups.length > 0 ? () => setPanel({ kind: "create" }) : undefined}
+              addLabel="+ Nový materiál"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

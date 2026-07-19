@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
 import { describeMasterDataError } from "@/presentation/master-data/master-data-error-messages";
 import { ToolMachineCondition, MachiningMode, CuttingConditionSource } from "@/domain/entities/tool-machine-condition";
@@ -195,7 +196,14 @@ export default function CuttingConditionsPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!conditions && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {conditions && filtered.length === 0 && <p className="text-sm text-muted">Žádný záznam neodpovídá filtru.</p>}
+          {conditions && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={conditions.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné profily řezných podmínek pro dvojici nástroj/stroj."
+              onAdd={canManage && tools.length > 0 && machines.length > 0 ? () => setPanel({ kind: "create" }) : undefined}
+              addLabel="+ Nový profil"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

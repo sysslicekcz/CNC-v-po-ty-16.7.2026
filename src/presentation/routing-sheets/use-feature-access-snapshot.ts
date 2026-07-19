@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { GetFeatureAccessSnapshotUseCase } from "@/application/licensing/get-feature-access-snapshot-use-case";
 import { FeatureAccessSnapshot } from "@/application/licensing/feature-access-snapshot";
+import { ensureAppBootstrapped } from "@/presentation/bootstrap/ensure-app-bootstrapped";
 
 /** Načte `FeatureAccessSnapshot` JEDNOU při připojení komponenty a předá ho
  *  dolů přes `FeatureGate` (zadání Krok 4, bod 17: "jedno načtení pro celou
@@ -12,8 +13,8 @@ export function useFeatureAccessSnapshot(useCase: GetFeatureAccessSnapshotUseCas
 
   useEffect(() => {
     let cancelled = false;
-    useCase
-      .execute()
+    ensureAppBootstrapped()
+      .then(() => useCase.execute())
       .then((result) => {
         if (!cancelled) setSnapshot(result);
       })

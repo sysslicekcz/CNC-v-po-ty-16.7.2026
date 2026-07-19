@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AppNav from "@/components/AppNav";
 
 export const metadata: Metadata = {
   title: "CNC Časovač",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="cs" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AppNav />
+        <div className="flex flex-1 flex-col">{children}</div>
+      </body>
     </html>
   );
 }

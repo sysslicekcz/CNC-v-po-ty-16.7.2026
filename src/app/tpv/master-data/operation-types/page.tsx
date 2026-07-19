@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
 import { describeMasterDataError } from "@/presentation/master-data/master-data-error-messages";
 import { OperationType, OperationCategory, OperationTypeResourceRequirement } from "@/domain/entities/operation-type";
@@ -162,7 +163,14 @@ export default function OperationTypesPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!items && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {items && filtered.length === 0 && <p className="text-sm text-muted">Žádný záznam neodpovídá filtru.</p>}
+          {items && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={items.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné typy operací. Typ operace definuje požadavky na zdroje (stroj/kooperaci) a jeho vlastnosti."
+              onAdd={canManage ? () => setPanel({ kind: "create" }) : undefined}
+              addLabel="+ Nový typ operace"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

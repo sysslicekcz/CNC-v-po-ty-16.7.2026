@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ConfirmDialog } from "@/presentation/master-data/components/confirm-dialog";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
 import { describeMasterDataError } from "@/presentation/master-data/master-data-error-messages";
@@ -126,7 +127,15 @@ export default function CapacityGroupsPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!groups && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {groups && filtered.length === 0 && <p className="text-sm text-muted">Žádná skupina neodpovídá filtru.</p>}
+          {groups && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={groups.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné skupiny kapacity. Skupina sdílí fyzickou kapacitu napříč více stroji."
+              noMatchMessage="Žádná skupina neodpovídá filtru."
+              onAdd={canManage ? () => setPanel({ kind: "create" }) : undefined}
+              addLabel="+ Nová skupina"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

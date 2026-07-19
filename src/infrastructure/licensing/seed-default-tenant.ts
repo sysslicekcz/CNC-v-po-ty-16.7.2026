@@ -15,14 +15,18 @@ const DEFAULT_LICENSE_PLAN_CODE = "local-default";
  * odlišný stav (např. ručně pozastavený tenant zůstane pozastavený).
  *
  * Licence odpovídá tomu, co appka DNES fakticky umí - ne budoucím modulům,
- * které appka ještě nemá v UI (plánování, ERP integrace, pokročilé kalkulace):
- * ty licence záměrně neuvádí, takže FeatureAccessService pro ně vrátí "none",
- * dokud nebudou skutečně implementované a licenčně zpřístupněné.
+ * které appka ještě nemá v UI (plánování, pokročilé kalkulace, import/export/
+ * synchronizace s konkrétním ERP): ty licence záměrně neuvádí, takže
+ * FeatureAccessService pro ně vrátí "none", dokud nebudou skutečně
+ * implementované a licenčně zpřístupněné.
  * `routing.release`/`cooperations.view` byly doplněny v Kroku 4. Krok 5
  * (správa kmenových dat) doplňuje `machines.capacity_groups`,
  * `cooperations.manage`, `operation_types.*`, `cutting_conditions.*`,
  * `materials.*` - bez nich by čerstvá instalace appky nemohla použít žádnou z
  * nově postavených obrazovek `/tpv/master-data/*`, viz docs/audits/step-5-audit.md.
+ * Krok 6 (integrace/UX dotažení) doplňuje `integration.erp.view`/`.configure` -
+ * appka teď má skutečnou stránku `/tpv/integrations` pro evidenci připojených
+ * externích systémů.
  */
 export async function ensureDefaultTenantAndLicense(): Promise<void> {
   const tenants = new IndexedDbTenantRepository();
@@ -67,6 +71,8 @@ export async function ensureDefaultTenantAndLicense(): Promise<void> {
           { code: FeatureCodes.CuttingConditionsManage, access: "full" },
           { code: FeatureCodes.MaterialsView, access: "full" },
           { code: FeatureCodes.MaterialsManage, access: "full" },
+          { code: FeatureCodes.IntegrationErpView, access: "full" },
+          { code: FeatureCodes.IntegrationErpConfigure, access: "full" },
         ],
         limits: [],
         issuedAt: new Date().toISOString(),

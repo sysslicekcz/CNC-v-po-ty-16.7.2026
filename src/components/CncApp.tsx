@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useCustomers, useInquiries, useParts, usePositions, useMachines, formatPartLabel, Part, Position, Machine } from "@/lib/entities";
 import { useSearchIndex, filterEntries, SearchEntry } from "@/lib/search";
@@ -719,22 +720,33 @@ export default function CncApp() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       {isHome ? (
-        <header className="mb-8 flex flex-col gap-1 border-b border-border pb-6">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Dílenský výpočet časů
+        <header className="mb-8 flex flex-col gap-3 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-accent">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Dílenský výpočet časů
+            </div>
+            <h1 className="font-mono text-2xl font-semibold tracking-tight sm:text-3xl">
+              CNC Časovač
+            </h1>
+            <p className="max-w-2xl text-sm text-muted">
+              Přepočet strojních časů z řezných podmínek — soustružení, vrtání, zápichy, frézování
+              drážek a broušení. Data se ukládají v prohlížeči.
+            </p>
           </div>
-          <h1 className="font-mono text-2xl font-semibold tracking-tight sm:text-3xl">
-            CNC Časovač
-          </h1>
-          <p className="max-w-2xl text-sm text-muted">
-            Přepočet strojních časů z řezných podmínek — soustružení, vrtání, zápichy, frézování
-            drážek a broušení. Data se ukládají v prohlížeči.
-          </p>
+          <Link
+            href="/tpv"
+            className="inline-flex shrink-0 items-center gap-2 rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-accent/10"
+          >
+            Otevřít TPV →
+          </Link>
         </header>
       ) : (
         <header className="mb-4 flex items-center justify-between border-b border-border pb-3">
           <h1 className="font-mono text-base font-semibold tracking-tight text-muted">CNC Časovač</h1>
+          <Link href="/tpv" className="text-sm text-accent hover:underline">
+            Otevřít TPV →
+          </Link>
         </header>
       )}
 

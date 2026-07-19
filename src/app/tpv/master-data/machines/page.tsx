@@ -11,6 +11,7 @@ import { satisfiesAccess } from "@/domain/licensing/feature-access";
 import { MasterDataNav } from "@/presentation/master-data/components/master-data-nav";
 import { MasterDataToolbar, MasterDataStatusFilter } from "@/presentation/master-data/components/master-data-toolbar";
 import { MasterDataStatusBadge } from "@/presentation/master-data/components/master-data-status-badge";
+import { MasterDataEmptyState } from "@/presentation/master-data/components/master-data-empty-state";
 import { ConfirmDialog } from "@/presentation/master-data/components/confirm-dialog";
 import { MachineForm, MachineFormValues, machineToFormValues, EMPTY_MACHINE_FORM } from "@/presentation/master-data/components/machine-form";
 import { ExportCsvButton } from "@/presentation/master-data/components/export-csv-button";
@@ -183,7 +184,15 @@ export default function MachinesPage() {
 
           {error && <p className="mb-3 text-sm text-danger">{error}</p>}
           {!machines && !error && <p className="text-sm text-muted">Načítám…</p>}
-          {machines && filtered.length === 0 && <p className="text-sm text-muted">Žádný stroj neodpovídá filtru.</p>}
+          {machines && filtered.length === 0 && (
+            <MasterDataEmptyState
+              hasAnyItems={machines.length > 0}
+              noItemsMessage="Zatím nejsou založeny žádné stroje. Stroje se přiřazují k operacím v technologickém postupu a mají vlastní hodinovou sazbu."
+              noMatchMessage="Žádný stroj neodpovídá filtru."
+              onAdd={canManage ? () => setPanel({ kind: "create" }) : undefined}
+              addLabel="+ Nový stroj"
+            />
+          )}
 
           {filtered.length > 0 && (
             <table className="w-full text-sm">

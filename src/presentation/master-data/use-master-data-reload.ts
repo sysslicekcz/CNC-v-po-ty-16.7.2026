@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ensureAppBootstrapped } from "@/presentation/bootstrap/ensure-app-bootstrapped";
 
 /**
  * Spustí `load()` při připojení komponenty/změně závislosti. Vytažené do
@@ -16,6 +17,6 @@ import { useEffect } from "react";
  */
 export function useMasterDataReload(load: () => Promise<void>): void {
   useEffect(() => {
-    void load();
+    void ensureAppBootstrapped().then(load);
   }, [load]);
 }
