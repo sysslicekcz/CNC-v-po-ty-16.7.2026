@@ -38,4 +38,41 @@ export interface CalculationContext {
    *  kalibrační model - ten čeká na fázi, která kalibrační data skutečně
    *  používá). */
   calibrationProfileId?: string;
+  /**
+   * AP-MCE-001 Fáze C §5/§6 - jedna soustružnická operace může mít VÍC
+   * `TurningFeature`, každý s jiným nástrojem/podtypem, tedy potenciálně s
+   * JINOU vyřešenou řeznou podmínkou (na rozdíl od `cuttingConditionSnapshot`
+   * výš, což je JEDNA hodnota pro celou operaci - dost pro Fázi B, nedost pro
+   * víc-featurové operace Fáze C). `CalculateTurningOperationUseCase`
+   * (Application vrstva) zavolá `CuttingConditionResolverService.resolve()`
+   * (Fáze B, beze změny) JEDNOU PRO KAŽDÝ feature (repozitářový přístup smí
+   * mít jen use case, ne strategie) a výsledek sem uloží podle `TurningFeature.id`
+   * - `TurningCalculationStrategy` pak čte už JEN hotová data, žádný další
+   * resolver nevolá (zůstává čistá funkce).
+   */
+  turningCuttingConditionsByFeatureId?: Readonly<Record<string, TurningResolvedCuttingConditionForFeature>>;
+  /**
+   * AP-MCE-001 Fáze C §3/§8 - stejný důvod jako `turningCuttingConditionsBy
+   * FeatureId`: `toolProfileSnapshot` výš je JEDEN nástroj pro celou operaci
+   * (dost pro Fázi B, kde `OperationCalculationInputBase.toolId` je taky jen
+   * jeden), ale jedna soustružnická operace může používat RŮZNÉ nástroje v
+   * různých `TurningFeature` (§3 "započítat výměnu nástroje mezi feature").
+   * `CalculateTurningOperationUseCase` zavolá `ToolProfileResolver.resolve
+   * Snapshot()` (Fáze B, beze změny) pro KAŽDÝ unikátní `TurningFeature.
+   * toolProfileId` a uloží sem podle `TurningFeature.id`.
+   */
+  toolProfileSnapshotsByFeatureId?: Readonly<Record<string, ToolProfileSnapshot>>;
+}
+
+/** Jedna položka `turningCuttingConditionsByFeatureId` - zúžený výřez
+ *  `CuttingConditionResolution` (Fáze B) na to, co `TurningCalculationStrategy`
+ *  skutečně čte (řezná rychlost + posuv na otáčku, se zdrojem/důvěryhodností
+ *  pro breakdown/confidence). */
+export interface TurningResolvedCuttingConditionForFeature {
+  cuttingSpeedMMin?: number;
+  cuttingSpeedSource?: string;
+  cuttingSpeedConfidence?: number;
+  feedPerRevolutionMm?: number;
+  feedSource?: string;
+  feedConfidence?: number;
 }

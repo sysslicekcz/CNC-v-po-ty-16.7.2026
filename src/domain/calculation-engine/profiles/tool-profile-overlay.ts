@@ -34,6 +34,7 @@ export function resolveToolProfileOverlay(system: ToolProfile, correction?: Tool
     toolChangeTimeSec: correction.toolChangeTimeSec ?? system.toolChangeTimeSec,
     price: system.price,
     currency: system.currency,
+    maxCuttingSpeedMMin: system.maxCuttingSpeedMMin,
     wearFactorCurve: correction.wearFactorCurve ?? system.wearFactorCurve,
     tenantCorrectionId: correction.id,
     recordVersion: system.recordVersion,

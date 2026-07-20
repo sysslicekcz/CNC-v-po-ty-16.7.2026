@@ -144,6 +144,7 @@ export interface ToolProfileRecord {
   price?: number;
   currency?: string;
   wearFactorCurve: { points: ToolWearCurvePoint[]; curveVersion: string };
+  maxCuttingSpeedMMin?: number;
   tenantCorrectionId?: string;
   recordVersion: number;
   createdAt: string;

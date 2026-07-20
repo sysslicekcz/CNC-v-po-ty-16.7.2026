@@ -30,6 +30,14 @@ export interface ToolProfileProps {
   price?: number;
   currency?: string;
   wearFactorCurve: ToolWearCurve;
+  /** Maximální bezpečná řezná rychlost nástroje (m/min), pokud ji výrobce/
+   *  tenant zná (AP-MCE-001 Fáze C §5/§7 "maxRpm nástroje, pokud existuje" /
+   *  "tool max cutting speed") - ADITIVNÍ pole nad Fázi B (`undefined` pro
+   *  všechny profily založené před Fází C, nic se nerozbije). Vyjádřená jako
+   *  řezná rychlost, ne přímo `rpm` - skutečný otáčkový limit závisí na
+   *  průměru obráběného místa, ten strategie dopočítá sama
+   *  (`SpindleSpeed.fromCuttingSpeed`). */
+  maxCuttingSpeedMMin?: number;
   tenantCorrectionId?: string;
   recordVersion: number;
   createdAt: string;
@@ -143,6 +151,9 @@ export class ToolProfile {
   get wearFactorCurve(): ToolWearCurve {
     return this.props.wearFactorCurve;
   }
+  get maxCuttingSpeedMMin(): number | undefined {
+    return this.props.maxCuttingSpeedMMin;
+  }
   get tenantCorrectionId(): string | undefined {
     return this.props.tenantCorrectionId;
   }
@@ -220,6 +231,7 @@ export class ToolProfile {
       price: this.props.price,
       currency: this.props.currency,
       wearFactorCurve: this.props.wearFactorCurve.toJSON(),
+      maxCuttingSpeedMMin: this.props.maxCuttingSpeedMMin,
       tenantCorrectionId: this.props.tenantCorrectionId,
       recordVersion: this.props.recordVersion,
       createdAt: this.props.createdAt,

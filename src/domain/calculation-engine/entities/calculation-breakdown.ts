@@ -1,6 +1,7 @@
 import { ValidationError } from "@/domain/errors/validation-error";
 import { Time } from "../value-objects/time";
 import { Quantity } from "../value-objects/quantity";
+import { TurningCalculationBreakdown } from "../turning/turning-calculation-breakdown";
 
 /**
  * Rozpad výsledku výpočtu podle přesného modelu z AP-MCE-001 §03 - TŘI
@@ -52,6 +53,14 @@ export interface CalculationBreakdownProps {
   /** Layer 3 - aditivní přirážky, aplikované AŽ NA konci skládání. */
   percentageAllowance: number;
   fixedAllowance: Time;
+
+  /** AP-MCE-001 Fáze C §9 "Rozšiř CalculationBreakdown o turning část" -
+   *  ADITIVNÍ pole, `undefined` pro všechny výsledky mimo `Turning
+   *  CalculationStrategy` (a i pro tu skutečně jen doplňuje - Layer 1/2/3
+   *  pole výš zůstávají jediným zdrojem pravdy pro `totalOperationTime`,
+   *  tohle nese jen VYSVĚTLENÍ/detail po jednotlivých `TurningFeature`,
+   *  viz komentář u `TurningCalculationBreakdown`). */
+  turningDetail?: TurningCalculationBreakdown;
 }
 
 function assertNonNegativeCoefficient(name: string, value: number): void {
@@ -204,6 +213,9 @@ export class CalculationBreakdown {
   get fixedAllowance(): Time {
     return this.props.fixedAllowance;
   }
+  get turningDetail(): TurningCalculationBreakdown | undefined {
+    return this.props.turningDetail;
+  }
 
   /** UnitTimeAdjusted (AP-MCE-001 §03) - čas na jeden kus PO aplikaci všech
    *  Layer 2 koeficientů, jednotné pro celou dávku v Fázi A (viz komentář
@@ -279,6 +291,9 @@ export class CalculationBreakdown {
       historicalCalibrationCoefficient: json.historicalCalibrationCoefficient as number,
       percentageAllowance: json.percentageAllowance as number,
       fixedAllowance: Time.fromJSON(json.fixedAllowance as number),
+      // `turningDetail` je plochá, čistě datová struktura (žádné vnořené
+      // hodnotové objekty s vlastní `fromJSON`) - reprodukuje se beze změny.
+      turningDetail: json.turningDetail as TurningCalculationBreakdown | undefined,
     });
   }
 
@@ -307,6 +322,7 @@ export class CalculationBreakdown {
       historicalCalibrationCoefficient: this.props.historicalCalibrationCoefficient,
       percentageAllowance: this.props.percentageAllowance,
       fixedAllowance: this.props.fixedAllowance.toJSON(),
+      turningDetail: this.props.turningDetail,
       // Odvozené hodnoty se serializují taky - konzumenti (API, UI) je nemusí
       // přepočítávat znovu, viz AP-MCE-001 §05 "Výpočet nesmí vracet pouze
       // jedno číslo bez vysvětlení".

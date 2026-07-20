@@ -6,6 +6,7 @@ export interface BuildCalculationEngineEventInput {
   siteId?: string;
   entityId: string;
   entityVersion?: number;
+  strategyVersion?: string;
   actorId?: string;
   correlationId?: string;
   occurredAt?: string;
@@ -22,6 +23,7 @@ export function buildCalculationEngineEvent(input: BuildCalculationEngineEventIn
     siteId: input.siteId,
     entityId: input.entityId,
     entityVersion: input.entityVersion,
+    strategyVersion: input.strategyVersion,
     occurredAt: input.occurredAt ?? new Date().toISOString(),
     actorId: input.actorId,
     correlationId: input.correlationId ?? crypto.randomUUID(),

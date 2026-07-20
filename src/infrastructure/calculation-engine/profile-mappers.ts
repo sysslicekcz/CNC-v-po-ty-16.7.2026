@@ -186,6 +186,7 @@ export function toolProfileFromRecord(record: ToolProfileRecord): ToolProfile {
     price: record.price,
     currency: record.currency,
     wearFactorCurve: ToolWearCurve.fromJSON(record.wearFactorCurve),
+    maxCuttingSpeedMMin: record.maxCuttingSpeedMMin,
     tenantCorrectionId: record.tenantCorrectionId,
     recordVersion: record.recordVersion,
     createdAt: record.createdAt,

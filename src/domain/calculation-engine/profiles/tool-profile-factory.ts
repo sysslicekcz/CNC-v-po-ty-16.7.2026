@@ -19,6 +19,7 @@ export interface CreateToolProfileFromToolInput {
   price?: number;
   currency?: string;
   wearFactorCurve?: ToolWearCurve;
+  maxCuttingSpeedMMin?: number;
   externalReferences?: readonly ExternalReferenceSummary[];
   now: string;
 }
@@ -49,6 +50,7 @@ export class ToolProfileFactory {
       price: input.price,
       currency: input.currency,
       wearFactorCurve: input.wearFactorCurve ?? ToolWearCurve.flat(),
+      maxCuttingSpeedMMin: input.maxCuttingSpeedMMin,
       recordVersion: 1,
       createdAt: input.now,
       updatedAt: input.now,

@@ -24,7 +24,17 @@ export type CalculationEngineEventType =
   | "tool_correction.created"
   | "cutting_condition.created"
   | "cutting_condition.updated"
-  | "calculation_context.resolved";
+  | "calculation_context.resolved"
+  // AP-MCE-001 Fáze C §16 - `entityId` u těchto šesti nese `calculationId`
+  // (= `CalculationRequest.id`/`CalculationResult.id`), `entityVersion` nese
+  // revizi výsledku (`CalculationResult` se nikdy nepřepisuje, přepočet
+  // vytváří novou revizi - viz `strategyVersion` pole níž).
+  | "turning_calculation.requested"
+  | "turning_calculation.completed"
+  | "turning_calculation.failed"
+  | "turning_calculation.recalculated"
+  | "turning_machine_comparison.completed"
+  | "turning_tool_comparison.completed";
 
 export interface CalculationEngineEvent {
   eventId: string;
@@ -36,6 +46,11 @@ export interface CalculationEngineEvent {
    *  read-only události bez vlastní verze (`calculation_context.resolved`). */
   entityVersion?: number;
   occurredAt: string;
+  /** AP-MCE-001 Fáze C §16 - verze VÝPOČETNÍ LOGIKY strategie, která
+   *  událost vyvolala (`TurningCalculationStrategy.strategyVersion`,
+   *  "turning-1.0.0") - `undefined` pro události, které se strategií
+   *  nesouvisí (profily, korekce, `calculation_context.resolved`). */
+  strategyVersion?: string;
   /** Kdo akci provedl - appka dnes nemá `TenantContext.requireCurrentUserId`
    *  (grep potvrzuje, že žádný takový port neexistuje), use casy proto
    *  dostávají `actorId` jako explicitní vstup (stejná konvence jako

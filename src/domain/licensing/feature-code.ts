@@ -50,7 +50,15 @@ export type FeatureCode =
   | "calculation.read"
   | "calculation.create"
   | "calculation.edit"
-  | "calculation.admin";
+  | "calculation.admin"
+  // AP-MCE-001 Fáze C §17 - `calculation.turning` řídí konkrétně spuštění
+  // `TurningCalculationStrategy` (bez něj se strategie nesmí spustit, kontrola
+  // NENÍ jen v UI - viz `CalculateTurningOperationUseCase`); `calculation.
+  // override`/`calculation.approve` jsou jemnější oprávnění nad rámec Fáze B
+  // čtveřice (ruční přepis vypočteného času / schválení výsledku).
+  | "calculation.override"
+  | "calculation.approve"
+  | "calculation.turning";
 
 /** Dynamický doplněk `FeatureCode` pro dostupnost KONKRÉTNÍHO konektoru
  *  (`connector.helios`, `connector.sap`, `connector.custom-rest`, ...) - licence
@@ -100,6 +108,9 @@ export const FeatureCodes = {
   CalculationCreate: "calculation.create",
   CalculationEdit: "calculation.edit",
   CalculationAdmin: "calculation.admin",
+  CalculationOverride: "calculation.override",
+  CalculationApprove: "calculation.approve",
+  CalculationTurning: "calculation.turning",
 } as const satisfies Record<string, FeatureCode>;
 
 /** Sestaví `ConnectorFeatureCode` pro daný `connectorType` (`"helios"` ->
