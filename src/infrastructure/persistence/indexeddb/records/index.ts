@@ -7,3 +7,4 @@ export * from "./tenancy-records";
 export * from "./integration-records";
 export * from "./master-data-catalog-records";
 export * from "./calculation-engine-records";
+export * from "./calculation-engine-profile-records";

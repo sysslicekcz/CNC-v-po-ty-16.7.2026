@@ -7,7 +7,7 @@
 import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 /** Použito jen k backfillu Kroku 5 (viz `upgrade()`, `oldVersion < 5`) - appka
  *  dosud běží s jediným výchozím tenantem, takže existující OperationType/
  *  ToolType záznamy patří logicky jemu. */
@@ -50,7 +50,14 @@ export type TpvStoreName =
   | "tpvMaterials"
   | "tpvCalculationRequests"
   | "tpvCalculationResults"
-  | "tpvRuleVersions";
+  | "tpvRuleVersions"
+  | "tpvMaterialProfiles"
+  | "tpvMaterialCorrections"
+  | "tpvMachineProfiles"
+  | "tpvMachineCorrections"
+  | "tpvToolProfiles"
+  | "tpvToolCorrections"
+  | "tpvCuttingConditions";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -346,6 +353,43 @@ export function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTrans
     const ruleVersions = db.createObjectStore("tpvRuleVersions", { keyPath: "id" });
     ruleVersions.createIndex("tenantId", "tenantId");
     ruleVersions.createIndex("tenantId_status", ["tenantId", "status"]);
+  }
+
+  if (oldVersion < 7) {
+    // Manufacturing Calculation Engine (AP-MCE-001, Fáze B) - Material/Machine/
+    // ToolProfile + jejich tenant Correction (overlay model, viz `*-profile-overlay.ts`)
+    // a CuttingCondition read-model. Sedm nových stores, žádná úprava
+    // existujících - stejný aditivní vzor jako `oldVersion < 6` výš. Sekundární
+    // dotazy (`findByExternalReference`, `findCandidates`, `findSystemDefault`)
+    // filtrují v JS nad `tenantId` indexem, stejný vzor jako zbytek appky (viz
+    // `IndexedDbCalculationRepository.findRequestByIdempotencyKey`) - žádný z
+    // nových stores tak nepotřebuje složené indexy nad polem `externalReferences`
+    // (IndexedDB neumí indexovat pole objektů).
+    const materialProfiles = db.createObjectStore("tpvMaterialProfiles", { keyPath: "id" });
+    materialProfiles.createIndex("tenantId", "tenantId");
+
+    const materialCorrections = db.createObjectStore("tpvMaterialCorrections", { keyPath: "id" });
+    materialCorrections.createIndex("tenantId", "tenantId");
+    materialCorrections.createIndex("materialProfileId", "materialProfileId");
+
+    const machineProfiles = db.createObjectStore("tpvMachineProfiles", { keyPath: "id" });
+    machineProfiles.createIndex("tenantId", "tenantId");
+    machineProfiles.createIndex("physicalMachineId", "physicalMachineId");
+
+    const machineCorrections = db.createObjectStore("tpvMachineCorrections", { keyPath: "id" });
+    machineCorrections.createIndex("tenantId", "tenantId");
+    machineCorrections.createIndex("machineProfileId", "machineProfileId");
+
+    const toolProfiles = db.createObjectStore("tpvToolProfiles", { keyPath: "id" });
+    toolProfiles.createIndex("tenantId", "tenantId");
+
+    const toolCorrections = db.createObjectStore("tpvToolCorrections", { keyPath: "id" });
+    toolCorrections.createIndex("tenantId", "tenantId");
+    toolCorrections.createIndex("toolProfileId", "toolProfileId");
+
+    const cuttingConditions = db.createObjectStore("tpvCuttingConditions", { keyPath: "id" });
+    cuttingConditions.createIndex("tenantId", "tenantId");
+    cuttingConditions.createIndex("materialProfileId", "materialProfileId");
   }
 }
 
