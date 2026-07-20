@@ -7,7 +7,7 @@
 import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 /** Použito jen k backfillu Kroku 5 (viz `upgrade()`, `oldVersion < 5`) - appka
  *  dosud běží s jediným výchozím tenantem, takže existující OperationType/
  *  ToolType záznamy patří logicky jemu. */
@@ -47,7 +47,10 @@ export type TpvStoreName =
   | "tpvOperationTypeCapabilityRequirements"
   | "tpvSuppliers"
   | "tpvMaterialGroups"
-  | "tpvMaterials";
+  | "tpvMaterials"
+  | "tpvCalculationRequests"
+  | "tpvCalculationResults"
+  | "tpvRuleVersions";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -323,6 +326,26 @@ export function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTrans
     materials.createIndex("tenantId", "tenantId");
     materials.createIndex("tenantId_code", ["tenantId", "code"], { unique: true });
     materials.createIndex("materialGroupId", "materialGroupId");
+  }
+
+  if (oldVersion < 6) {
+    // Manufacturing Calculation Engine (AP-MCE-001, Fáze A) - první samostatný
+    // modul platformy (viz docs, AP-CPP-006). Tři nové stores, žádná úprava
+    // existujících - `tpvCalculations` (Krok 4, jeden výpočet na Activity)
+    // zůstává beze změny, tenhle modul je vedle něj, ne náhrada (most mezi
+    // nimi staví až pozdější fáze, viz `domain/calculation-engine/services/
+    // calculation-engine.ts`).
+    const calculationRequests = db.createObjectStore("tpvCalculationRequests", { keyPath: "id" });
+    calculationRequests.createIndex("tenantId", "tenantId");
+    calculationRequests.createIndex("tenantId_idempotencyKey", ["tenantId", "idempotencyKey"], { unique: true });
+
+    const calculationResults = db.createObjectStore("tpvCalculationResults", { keyPath: "id" });
+    calculationResults.createIndex("tenantId", "tenantId");
+    calculationResults.createIndex("calculationRequestId", "calculationRequestId");
+
+    const ruleVersions = db.createObjectStore("tpvRuleVersions", { keyPath: "id" });
+    ruleVersions.createIndex("tenantId", "tenantId");
+    ruleVersions.createIndex("tenantId_status", ["tenantId", "status"]);
   }
 }
 

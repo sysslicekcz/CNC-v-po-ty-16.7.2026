@@ -66,6 +66,7 @@ const OPERATION_CATEGORY_VALUES = [
   "inspection",
   "ndt",
   "preparation",
+  "manual",
   "other",
 ] as const;
 export function parseOperationCategory(value: string): OperationCategory {

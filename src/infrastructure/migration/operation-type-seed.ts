@@ -44,6 +44,7 @@ const RESOURCE_REQUIREMENT_BY_CATEGORY: Record<OperationCategory, OperationTypeR
   inspection: "either",
   ndt: "either",
   preparation: "machine",
+  manual: "none",
   other: "machine",
 };
 

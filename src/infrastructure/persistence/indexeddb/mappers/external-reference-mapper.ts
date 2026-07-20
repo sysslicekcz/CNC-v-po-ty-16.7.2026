@@ -13,6 +13,7 @@ const LOCAL_ENTITY_TYPE_VALUES = [
   "operationType",
   "tool",
   "externalOperationResource",
+  "material",
 ] as const satisfies readonly ExternalReferenceEntityType[];
 
 export function externalReferenceToRecord(reference: ExternalReference): ExternalReferenceRecord {

@@ -4,7 +4,14 @@ import { EntityStav } from "./common";
 /** Vysoká klasifikace pro shodu se strojem (MachineCapability) a pro odvození typu
  *  stroje. "preparation" (přípravné časy) je speciální - nekontroluje se proti
  *  capabilitám stroje, protože je dostupná na každém stroji (viz
- *  filterOperationsForMachine v dnešním lib/operations.ts). */
+ *  filterOperationsForMachine v dnešním lib/operations.ts).
+ *
+ * "manual" doplněno v AP-MCE-001 Fázi A/B (Manufacturing Calculation Engine) -
+ * ruční operace (odjehlení, čištění, balení, ...) jsou explicitně součástí
+ * MVP rozsahu (`ManualOperationCalculationStrategy`), ale tenhle číselník pro
+ * ně dosud neměl vlastní hodnotu (dřív by musely spadat pod "other", což by
+ * ztratilo význam). Stejná mezera jako `ExternalReferenceEntityType` bez
+ * `"material"` před Fází B - doplnění, ne architektonická změna. */
 export type OperationCategory =
   | "turning"
   | "milling"
@@ -13,6 +20,7 @@ export type OperationCategory =
   | "inspection"
   | "ndt"
   | "preparation"
+  | "manual"
   | "other";
 
 /** Jaký druh zdroje operace tohoto typu potřebuje (Krok 5, zadání bod 12) -

@@ -26,6 +26,7 @@ const CATEGORY_LABELS: Record<OperationCategory, string> = {
   inspection: "Kontrola",
   ndt: "NDT",
   preparation: "Příprava",
+  manual: "Ruční operace",
   other: "Jiné",
 };
 

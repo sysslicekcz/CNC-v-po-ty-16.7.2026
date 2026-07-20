@@ -1,7 +1,15 @@
 import { ValidationError } from "../errors/validation-error";
 
 /** Lokální entity appky, na které se smí externí systém odkazovat. Uzavřený
- *  union - rozšíření o novou lokální entitu je vědomá doménová změna. */
+ *  union - rozšíření o novou lokální entitu je vědomá doménová změna.
+ *
+ * `"material"` doplněno v AP-MCE-001 Fázi B (Material/Machine/Tool Profiles) -
+ * Krok 5 zavedl `Material` jako kmenová data, ale nedoplnil pro něj tenhle
+ * typ (mezera, ne záměr - `Machine`/`Tool` referenci od Kroku 3.5 měly).
+ * `MaterialProfile.id === Material.id` (stejná identita, profil je jen
+ * kalkulační projekce), takže žádný NOVÝ typ pro samotné profily nepřibývá -
+ * `MaterialProfile`/`MachineProfile`/`ToolProfile` sdílí referenci se svým
+ * podkladovým `Material`/`Machine`/`Tool` (viz `docs/step-6/` profily). */
 export type ExternalReferenceEntityType =
   | "customer"
   | "order"
@@ -12,7 +20,8 @@ export type ExternalReferenceEntityType =
   | "capacityGroup"
   | "operationType"
   | "tool"
-  | "externalOperationResource";
+  | "externalOperationResource"
+  | "material";
 
 export interface ExternalReferenceProps {
   id: string;

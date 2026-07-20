@@ -40,7 +40,17 @@ export type FeatureCode =
   | "integration.erp.sync"
   | "integration.erp.multiple_systems"
   | "integration.file.import"
-  | "integration.file.export";
+  | "integration.file.export"
+  // AP-MCE-001 Fáze B §12 - JEMNĚJŠÍ oprávnění pro Manufacturing Calculation
+  // Engine profily (Material/Machine/ToolProfile, CuttingCondition), odlišné
+  // od hrubšího Fáze A "calculations.basic"/"calculations.advanced" (to zůstává
+  // pro budoucí Presentation-level gating, tenhle čtveřice řídí konkrétně
+  // správu profilů a jejich použití ve výpočtu - viz FeatureAccessService.require
+  // volání v `application/calculation-engine/use-cases/*`).
+  | "calculation.read"
+  | "calculation.create"
+  | "calculation.edit"
+  | "calculation.admin";
 
 /** Dynamický doplněk `FeatureCode` pro dostupnost KONKRÉTNÍHO konektoru
  *  (`connector.helios`, `connector.sap`, `connector.custom-rest`, ...) - licence
@@ -86,6 +96,10 @@ export const FeatureCodes = {
   IntegrationErpMultipleSystems: "integration.erp.multiple_systems",
   IntegrationFileImport: "integration.file.import",
   IntegrationFileExport: "integration.file.export",
+  CalculationRead: "calculation.read",
+  CalculationCreate: "calculation.create",
+  CalculationEdit: "calculation.edit",
+  CalculationAdmin: "calculation.admin",
 } as const satisfies Record<string, FeatureCode>;
 
 /** Sestaví `ConnectorFeatureCode` pro daný `connectorType` (`"helios"` ->
