@@ -12,7 +12,7 @@ import { computeConfidenceScore } from "../../confidence-score";
 import { toOperationCalculationOutput } from "../../mappers/calculation-result-mapper";
 import { OperationCalculationOutput } from "../../dto/operation-calculation-output";
 import { TurningOperationCalculationInput } from "../dto/turning-operation-calculation-input";
-import { TurningCalculationContextBuilder } from "../turning-calculation-context-builder";
+import { TurningCalculationContextBuilderPort } from "../turning-calculation-context-builder";
 
 export interface RecalculateTurningOperationInput extends TurningOperationCalculationInput {
   /** Id PŘEDCHOZÍHO `CalculationResult`, který se má nahradit novou revizí -
@@ -34,7 +34,7 @@ export class RecalculateTurningOperationUseCase {
   constructor(
     private readonly tenantContext: TenantContext,
     private readonly calculationRepository: CalculationRepository,
-    private readonly contextBuilder: TurningCalculationContextBuilder,
+    private readonly contextBuilder: TurningCalculationContextBuilderPort,
     private readonly calculationEngine: CalculationEngine,
     private readonly featureAccessService: FeatureAccessService,
     private readonly eventPublisher: DomainEventPublisher

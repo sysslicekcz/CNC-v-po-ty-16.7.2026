@@ -125,10 +125,11 @@ export function calculateFeatureCutting(input: FeatureCuttingCalculationInput): 
     explicitDiameterOverrideMm: explicitDiameter,
   });
 
-  const feedPerRevolutionMm =
-    feature.subtype === "threading" && feature.geometry.threadPitchMm !== undefined && input.feedPerRevolutionMm <= 0
-      ? feature.geometry.threadPitchMm
-      : input.feedPerRevolutionMm;
+  // Posuv pro závit (stoupání = posuv na otáčku) je vyřešený už na úrovni
+  // `TurningCalculationStrategy` (má přednost před obecným systémovým
+  // defaultem, viz její komentář) - sem přichází `input.feedPerRevolutionMm`
+  // už jako finální hodnota.
+  const feedPerRevolutionMm = input.feedPerRevolutionMm;
 
   const spindle = resolveSpindleSpeed({
     cuttingSpeedMMin: input.cuttingSpeedMMin,
@@ -140,7 +141,25 @@ export function calculateFeatureCutting(input: FeatureCuttingCalculationInput): 
   });
 
   const feedRateMmMin = spindle.rpm * feedPerRevolutionMm;
-  const passes = resolvePassStrategy(plan.stockToRemoveMm, feature.machiningMode, feature.passStrategy ?? {});
+  // §6 "pro custom_path: použij ... explicitní počet opakování" - dráha
+  // nemusí být rotačně symetrická, takže se NEODVOZUJE z radiálního/axiálního
+  // úběru jako u ostatních podtypů (`resolvePassStrategy` by pro
+  // `startDiameterMm === endDiameterMm`, časté u custom_path, spočítalo 0
+  // hrubovacích průchodů - fyzikálně nesmyslné pro explicitní dráhu).
+  // `passStrategy.passCount` (obecné "explicitní má přednost") má přednost
+  // před `geometry.customPathRepeats`, obojí před výchozím 1 opakováním.
+  const passes =
+    feature.subtype === "custom_path" && feature.passStrategy?.passCount === undefined
+      ? {
+          roughingPasses: 0,
+          finishingPasses: feature.geometry.customPathRepeats ?? 1,
+          springPasses: feature.passStrategy?.springPassCount ?? 0,
+          totalPasses: (feature.geometry.customPathRepeats ?? 1) + (feature.passStrategy?.springPassCount ?? 0),
+          passCountManuallySpecified: false,
+          stockToRemoveMm: plan.stockToRemoveMm,
+          usedDefaultRoughingDepthOfCut: false,
+        }
+      : resolvePassStrategy(plan.stockToRemoveMm, feature.machiningMode, feature.passStrategy ?? {});
 
   const warnings = [...spindle.warnings];
   if (passes.passCountManuallySpecified) {

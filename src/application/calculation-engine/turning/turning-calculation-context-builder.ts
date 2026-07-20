@@ -9,6 +9,13 @@ import { MaterialProfileResolver } from "../resolvers/material-profile-resolver"
 import { ToolProfileResolver } from "../resolvers/tool-profile-resolver";
 import { CuttingConditionResolverService } from "../resolvers/cutting-condition-resolver-service";
 
+/** Zúžený tvar `TurningCalculationContextBuilder` (jen `build`), na kterém
+ *  závisí use casy - `Pick` zahodí "privátní" značku konkrétní třídy, takže
+ *  testy mohou dosadit prostý objekt s metodou `build` MÍSTO skutečné
+ *  instance se skutečnými repozitáři (rychlé unit testy use casů beze
+ *  změny produkčního zapojení - to pořád předává skutečnou instanci). */
+export type TurningCalculationContextBuilderPort = Pick<TurningCalculationContextBuilder, "build">;
+
 export interface BuildTurningCalculationContextOptions {
   /** Přepis `MachineProfile.id` pro tenhle výpočet, MÍSTO dohledání podle
    *  `input.machineId` (§14 "CompareTurningMachinesUseCase ... nahradit

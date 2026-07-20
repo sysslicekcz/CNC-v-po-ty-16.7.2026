@@ -4,7 +4,7 @@ import { CalculationIssue } from "@/domain/calculation-engine/entities/types";
 import { TurningCalculationInput } from "@/domain/calculation-engine/turning/turning-calculation-input";
 import { FeatureAccessService } from "@/domain/licensing/feature-access-service";
 import { FeatureCodes } from "@/domain/licensing/feature-code";
-import { TurningCalculationContextBuilder } from "../turning-calculation-context-builder";
+import { TurningCalculationContextBuilderPort } from "../turning-calculation-context-builder";
 
 /**
  * `ValidateTurningInputUseCase` (AP-MCE-001 Fáze C §14) - jen `validate()`
@@ -19,7 +19,7 @@ export class ValidateTurningInputUseCase {
   constructor(
     private readonly tenantContext: TenantContext,
     private readonly strategyRegistry: CalculationStrategyRegistry,
-    private readonly contextBuilder: TurningCalculationContextBuilder,
+    private readonly contextBuilder: TurningCalculationContextBuilderPort,
     private readonly featureAccessService: FeatureAccessService
   ) {}
 

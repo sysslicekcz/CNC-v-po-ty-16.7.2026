@@ -6,7 +6,7 @@ import { FeatureAccessService } from "@/domain/licensing/feature-access-service"
 import { FeatureCodes } from "@/domain/licensing/feature-code";
 import { DomainEventPublisher } from "@/domain/calculation-engine/events/domain-event-publisher";
 import { buildCalculationEngineEvent } from "@/domain/calculation-engine/events/build-calculation-engine-event";
-import { TurningCalculationContextBuilder } from "../turning-calculation-context-builder";
+import { TurningCalculationContextBuilderPort } from "../turning-calculation-context-builder";
 
 export interface CompareTurningToolsInput {
   input: TurningCalculationInput;
@@ -38,7 +38,7 @@ export interface TurningToolComparisonEntry {
 export class CompareTurningToolsUseCase {
   constructor(
     private readonly tenantContext: TenantContext,
-    private readonly contextBuilder: TurningCalculationContextBuilder,
+    private readonly contextBuilder: TurningCalculationContextBuilderPort,
     private readonly calculationEngine: CalculationEngine,
     private readonly featureAccessService: FeatureAccessService,
     private readonly eventPublisher: DomainEventPublisher

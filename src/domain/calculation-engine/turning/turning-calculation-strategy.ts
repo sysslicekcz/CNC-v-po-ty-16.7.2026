@@ -19,13 +19,7 @@ import { TurningPowerEstimator, MvpTurningPowerEstimator } from "./turning-power
 import { checkMachineTurningCapability, checkToolTurningCapability, checkToolMaterialCompatibility, checkWorkEnvelope, checkPowerAndTorque } from "./turning-limits";
 import { turningIssue } from "./turning-issue-codes";
 import { TurningFeatureBreakdown, TurningCalculationBreakdown } from "./turning-calculation-breakdown";
-import {
-  readMachineProfileView,
-  readMaterialProfileView,
-  readToolProfileView,
-  MachineProfileView,
-  ToolProfileView,
-} from "./turning-context-views";
+import { readMachineProfileView, readMaterialProfileView, readToolProfileView, ToolProfileView } from "./turning-context-views";
 
 /** MVP systémový výchozí odhad, POUZE pokud žádný jiný zdroj (explicit,
  *  vyřešená `CuttingCondition`, doporučení nástroje/materiálu) neposkytl
@@ -208,11 +202,19 @@ export class TurningCalculationStrategy implements CalculationStrategy {
         resolvedCondition?.cuttingSpeedSource,
         SYSTEM_DEFAULT_CUTTING_SPEED_MMIN
       );
+      // §5/§6 "závit: jmenovitý průměr..." / "pro závit: stoupání závitu" -
+      // stoupání JE posuv na otáčku (jednostartový závit), takže má přednost
+      // před obecným systémovým defaultem, pokud nic konkrétnějšího
+      // (explicit/vyřešená CuttingCondition) není k dispozici.
+      const feedSystemDefault =
+        feature.subtype === "threading" && feature.geometry.threadPitchMm !== undefined
+          ? feature.geometry.threadPitchMm
+          : SYSTEM_DEFAULT_FEED_PER_REV_MM;
       const resolvedFeed = resolveParameterValue(
         override?.feedPerRevolutionMm,
         resolvedCondition?.feedPerRevolutionMm,
         resolvedCondition?.feedSource,
-        SYSTEM_DEFAULT_FEED_PER_REV_MM
+        feedSystemDefault
       );
       if (resolvedCuttingSpeed.usedSystemDefault || resolvedFeed.usedSystemDefault) {
         usedSystemDefaultCuttingCondition = true;
