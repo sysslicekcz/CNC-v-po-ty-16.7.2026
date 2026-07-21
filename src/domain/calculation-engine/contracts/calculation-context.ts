@@ -3,6 +3,8 @@ import { MaterialProfileSnapshot } from "../profiles/material-profile-snapshot";
 import { MachineProfileSnapshot } from "../profiles/machine-profile-snapshot";
 import { ToolProfileSnapshot } from "../profiles/tool-profile-snapshot";
 import { CuttingConditionSnapshot } from "../cutting-conditions/cutting-condition-snapshot";
+import { ManualTimeProfileSnapshot } from "../manual/manual-time-profile-snapshot";
+import { InspectionEquipmentProfileSnapshot } from "../inspection/inspection-equipment-profile-snapshot";
 
 /**
  * Vše, co strategie/engine potřebuje NAD RÁMEC samotného vstupu, aby zůstala
@@ -78,6 +80,32 @@ export interface CalculationContext {
    * `tableSpeedMmMin` místo `feedPerToothMm`).
    */
   grindingCuttingConditionsByFeatureId?: Readonly<Record<string, GrindingResolvedCuttingConditionForFeature>>;
+  /**
+   * AP-MCE-001 Fáze F §5 - stejný důvod jako `turningCuttingConditionsBy
+   * FeatureId`: `ManualOperationCalculationContextBuilder` (Application
+   * vrstva) zavolá `ManualTimeStandardRepository.findCandidates()` +
+   * `resolveManualTimeStandard()` JEDNOU PRO KAŽDÝ `ManualOperationFeature`
+   * (kde `timeBasis !== "explicit"`) a výsledný snapshot uloží podle
+   * `ManualOperationFeature.id` - `ManualOperationCalculationStrategy` pak
+   * čte už jen hotová data.
+   */
+  manualTimeStandardsByFeatureId?: Readonly<Record<string, ManualTimeProfileSnapshot>>;
+  /**
+   * AP-MCE-001 Fáze F §9 - kontrolní vybavení (`InspectionEquipmentProfile`)
+   * per `InspectionFeature`, stejný důvod jako `toolProfileSnapshotsBy
+   * FeatureId` u technologických strategií (různé kontrolní úseky mohou
+   * používat různé měřicí vybavení).
+   */
+  inspectionEquipmentSnapshotsByFeatureId?: Readonly<Record<string, InspectionEquipmentProfileSnapshot>>;
+  /**
+   * AP-MCE-001 Fáze F §9/§14 - `InspectionEquipmentProfile.isCalibrationExpiredAt
+   * (now)` potřebuje aktuální čas, a `CalculationStrategy` MUSÍ zůstat čistá
+   * (žádný přístup k hodinám, §11) - stejný princip jako `resolveManualTime
+   * Standard({ now })` na Application vrstvě. `InspectionCalculationContext
+   * Builder` (Application vrstva) provede kontrolu PŘED voláním `Calculation
+   * Engine.calculate(...)` a výsledek sem uloží podle `InspectionFeature.id`.
+   */
+  inspectionEquipmentCalibrationExpiredByFeatureId?: Readonly<Record<string, boolean>>;
 }
 
 /** Jedna položka `grindingCuttingConditionsByFeatureId` - zúžený výřez

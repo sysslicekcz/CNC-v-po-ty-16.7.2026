@@ -4,6 +4,8 @@ import { Quantity } from "../value-objects/quantity";
 import { TurningCalculationBreakdown } from "../turning/turning-calculation-breakdown";
 import { MillingCalculationBreakdown } from "../milling/milling-calculation-breakdown";
 import { GrindingCalculationBreakdown } from "../grinding/grinding-calculation-breakdown";
+import { ManualCalculationBreakdown } from "../manual/manual-calculation-breakdown";
+import { InspectionCalculationBreakdown } from "../inspection/inspection-calculation-breakdown";
 
 /**
  * Rozpad výsledku výpočtu podle přesného modelu z AP-MCE-001 §03 - TŘI
@@ -72,6 +74,14 @@ export interface CalculationBreakdownProps {
   /** AP-MCE-001 Fáze E §12 "Rozšiř CalculationBreakdown o grinding část" -
    *  stejný aditivní princip jako `turningDetail`/`millingDetail`. */
   grindingDetail?: GrindingCalculationBreakdown;
+
+  /** AP-MCE-001 Fáze F §12 "Rozšiř CalculationBreakdown o manual část" -
+   *  stejný aditivní princip jako `turningDetail`/`millingDetail`/`grindingDetail`. */
+  manualDetail?: ManualCalculationBreakdown;
+
+  /** AP-MCE-001 Fáze F §12 "Rozšiř CalculationBreakdown o inspection část" -
+   *  stejný aditivní princip. */
+  inspectionDetail?: InspectionCalculationBreakdown;
 }
 
 function assertNonNegativeCoefficient(name: string, value: number): void {
@@ -233,6 +243,12 @@ export class CalculationBreakdown {
   get grindingDetail(): GrindingCalculationBreakdown | undefined {
     return this.props.grindingDetail;
   }
+  get manualDetail(): ManualCalculationBreakdown | undefined {
+    return this.props.manualDetail;
+  }
+  get inspectionDetail(): InspectionCalculationBreakdown | undefined {
+    return this.props.inspectionDetail;
+  }
 
   /** UnitTimeAdjusted (AP-MCE-001 §03) - čas na jeden kus PO aplikaci všech
    *  Layer 2 koeficientů, jednotné pro celou dávku v Fázi A (viz komentář
@@ -314,6 +330,8 @@ export class CalculationBreakdown {
       turningDetail: json.turningDetail as TurningCalculationBreakdown | undefined,
       millingDetail: json.millingDetail as MillingCalculationBreakdown | undefined,
       grindingDetail: json.grindingDetail as GrindingCalculationBreakdown | undefined,
+      manualDetail: json.manualDetail as ManualCalculationBreakdown | undefined,
+      inspectionDetail: json.inspectionDetail as InspectionCalculationBreakdown | undefined,
     });
   }
 
@@ -345,6 +363,8 @@ export class CalculationBreakdown {
       turningDetail: this.props.turningDetail,
       millingDetail: this.props.millingDetail,
       grindingDetail: this.props.grindingDetail,
+      manualDetail: this.props.manualDetail,
+      inspectionDetail: this.props.inspectionDetail,
       // Odvozené hodnoty se serializují taky - konzumenti (API, UI) je nemusí
       // přepočítávat znovu, viz AP-MCE-001 §05 "Výpočet nesmí vracet pouze
       // jedno číslo bez vysvětlení".

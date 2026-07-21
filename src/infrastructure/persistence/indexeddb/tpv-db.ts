@@ -7,7 +7,7 @@
 import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 /** Použito jen k backfillu Kroku 5 (viz `upgrade()`, `oldVersion < 5`) - appka
  *  dosud běží s jediným výchozím tenantem, takže existující OperationType/
  *  ToolType záznamy patří logicky jemu. */
@@ -57,7 +57,9 @@ export type TpvStoreName =
   | "tpvMachineCorrections"
   | "tpvToolProfiles"
   | "tpvToolCorrections"
-  | "tpvCuttingConditions";
+  | "tpvCuttingConditions"
+  | "tpvManualTimeStandards"
+  | "tpvInspectionEquipmentProfiles";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -390,6 +392,22 @@ export function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTrans
     const cuttingConditions = db.createObjectStore("tpvCuttingConditions", { keyPath: "id" });
     cuttingConditions.createIndex("tenantId", "tenantId");
     cuttingConditions.createIndex("materialProfileId", "materialProfileId");
+  }
+
+  if (oldVersion < 8) {
+    // Manufacturing Calculation Engine (AP-MCE-001, Fáze F) - ManualTimeStandard
+    // (ruční operace) a InspectionEquipmentProfile (kontrola). Dva nové stores,
+    // žádná úprava existujících - stejný aditivní vzor jako `oldVersion < 7`
+    // výš. `tpvManualTimeStandards.tenantId` nese speciální hodnotu "system"
+    // pro globální (systémové) standardy (doména je nese jako `tenantId ===
+    // undefined` - IndexedDB index potřebuje konkrétní hodnotu klíče, viz
+    // `IndexedDbManualTimeStandardRepository`).
+    const manualTimeStandards = db.createObjectStore("tpvManualTimeStandards", { keyPath: "id" });
+    manualTimeStandards.createIndex("tenantId", "tenantId");
+    manualTimeStandards.createIndex("operationSubtype", "operationSubtype");
+
+    const inspectionEquipmentProfiles = db.createObjectStore("tpvInspectionEquipmentProfiles", { keyPath: "id" });
+    inspectionEquipmentProfiles.createIndex("tenantId", "tenantId");
   }
 }
 

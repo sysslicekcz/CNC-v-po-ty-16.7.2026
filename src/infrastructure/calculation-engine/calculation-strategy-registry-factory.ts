@@ -2,6 +2,8 @@ import { CalculationStrategyRegistry, InMemoryCalculationStrategyRegistry } from
 import { TurningCalculationStrategy } from "@/domain/calculation-engine/turning/turning-calculation-strategy";
 import { MillingCalculationStrategy } from "@/domain/calculation-engine/milling/milling-calculation-strategy";
 import { GrindingCalculationStrategy } from "@/domain/calculation-engine/grinding/grinding-calculation-strategy";
+import { ManualOperationCalculationStrategy } from "@/domain/calculation-engine/manual/manual-operation-calculation-strategy";
+import { InspectionCalculationStrategy } from "@/domain/calculation-engine/inspection/inspection-calculation-strategy";
 
 /**
  * Kompoziční kořen registrace `CalculationStrategy` implementací (AP-MCE-001
@@ -18,5 +20,7 @@ export function createCalculationStrategyRegistry(): CalculationStrategyRegistry
   registry.register(new TurningCalculationStrategy());
   registry.register(new MillingCalculationStrategy());
   registry.register(new GrindingCalculationStrategy());
+  registry.register(new ManualOperationCalculationStrategy());
+  registry.register(new InspectionCalculationStrategy());
   return registry;
 }

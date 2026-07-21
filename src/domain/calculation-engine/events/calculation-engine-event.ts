@@ -54,7 +54,27 @@ export type CalculationEngineEventType =
   | "grinding_machine_comparison.completed"
   | "grinding_wheel_comparison.completed"
   | "wheel_dressing.planned"
-  | "wheel_replacement.planned";
+  | "wheel_replacement.planned"
+  // AP-MCE-001 Fáze F §19 - PŘESNĚ 11 událostí ze zadání. `manual_calculation.*`/
+  // `inspection_calculation.*` mají stejnou roli jako `turning_calculation.*`
+  // (včetně `.recalculated`, na rozdíl od dřívějšího návrhu tuhle fázi
+  // NEzjednodušuje - zadání ho chce explicitně). `manual_standard.selected`/
+  // `inspection_equipment.selected`/`inspection_sampling.resolved` NEJSOU
+  // CRUD události (na rozdíl od Fáze B `material_profile.created/updated`) -
+  // vyvolávají se PŘI VÝPOČTU, když `Calculate*OperationUseCase` zjistí, který
+  // konkrétní standard/vybavení/sampling plán se pro tenhle výsledek skutečně
+  // použil (auditní stopa §18 "jaký vzorkovací plán vedl k jakému výsledku").
+  | "manual_calculation.requested"
+  | "manual_calculation.completed"
+  | "manual_calculation.failed"
+  | "manual_calculation.recalculated"
+  | "inspection_calculation.requested"
+  | "inspection_calculation.completed"
+  | "inspection_calculation.failed"
+  | "inspection_calculation.recalculated"
+  | "manual_standard.selected"
+  | "inspection_sampling.resolved"
+  | "inspection_equipment.selected";
 
 export interface CalculationEngineEvent {
   eventId: string;
