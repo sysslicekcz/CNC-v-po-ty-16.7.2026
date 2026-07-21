@@ -179,6 +179,7 @@ export function toolProfileFromRecord(record: ToolProfileRecord): ToolProfile {
     teethCount: record.teethCount,
     cornerRadiusMm: record.cornerRadiusMm,
     insertType: record.insertType,
+    widthMm: record.widthMm,
     suitableMaterialGroupIds: record.suitableMaterialGroupIds,
     supportedOperationCategories: record.supportedOperationCategories,
     defaultCuttingParameters: record.defaultCuttingParameters.map((p) => ToolCuttingParameters.fromJSON(p)),

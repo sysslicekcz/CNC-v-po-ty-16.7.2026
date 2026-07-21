@@ -41,7 +41,20 @@ export type CalculationEngineEventType =
   | "milling_calculation.failed"
   | "milling_calculation.recalculated"
   | "milling_machine_comparison.completed"
-  | "milling_tool_comparison.completed";
+  | "milling_tool_comparison.completed"
+  // AP-MCE-001 Fáze E §19 - stejná role jako turning/milling ekvivalenty výš,
+  // plus dvě UDÁLOSTI SPECIFICKÉ pro broušení (`wheel_dressing.planned`/
+  // `wheel_replacement.planned` - orovnání a výměna kotouče jsou dvě ODLIŠNÉ
+  // věci, §7/§8 "Orovnání nesmí být zaměněno za výměnu kotouče", proto mají i
+  // ODDĚLENÉ události, ne jednu společnou).
+  | "grinding_calculation.requested"
+  | "grinding_calculation.completed"
+  | "grinding_calculation.failed"
+  | "grinding_calculation.recalculated"
+  | "grinding_machine_comparison.completed"
+  | "grinding_wheel_comparison.completed"
+  | "wheel_dressing.planned"
+  | "wheel_replacement.planned";
 
 export interface CalculationEngineEvent {
   eventId: string;

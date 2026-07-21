@@ -72,6 +72,24 @@ export interface CalculationContext {
    * data.
    */
   millingCuttingConditionsByFeatureId?: Readonly<Record<string, MillingResolvedCuttingConditionForFeature>>;
+  /**
+   * AP-MCE-001 Fáze E §5/§6 - stejný důvod jako `millingCuttingConditionsBy
+   * FeatureId`, jen pro `GrindingFeature` (`workpieceSpeedRpm`/`wheelSpeedMps`/
+   * `tableSpeedMmMin` místo `feedPerToothMm`).
+   */
+  grindingCuttingConditionsByFeatureId?: Readonly<Record<string, GrindingResolvedCuttingConditionForFeature>>;
+}
+
+/** Jedna položka `grindingCuttingConditionsByFeatureId` - zúžený výřez
+ *  `CuttingConditionResolution` (Fáze B) na to, co brusírenské strategie
+ *  skutečně čtou. */
+export interface GrindingResolvedCuttingConditionForFeature {
+  workpieceSpeedRpm?: number;
+  workpieceSpeedSource?: string;
+  wheelSpeedMps?: number;
+  wheelSpeedSource?: string;
+  tableSpeedMmMin?: number;
+  tableSpeedSource?: string;
 }
 
 /** Jedna položka `millingCuttingConditionsByFeatureId` - zúžený výřez

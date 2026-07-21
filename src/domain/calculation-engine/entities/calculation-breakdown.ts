@@ -3,6 +3,7 @@ import { Time } from "../value-objects/time";
 import { Quantity } from "../value-objects/quantity";
 import { TurningCalculationBreakdown } from "../turning/turning-calculation-breakdown";
 import { MillingCalculationBreakdown } from "../milling/milling-calculation-breakdown";
+import { GrindingCalculationBreakdown } from "../grinding/grinding-calculation-breakdown";
 
 /**
  * Rozpad výsledku výpočtu podle přesného modelu z AP-MCE-001 §03 - TŘI
@@ -67,6 +68,10 @@ export interface CalculationBreakdownProps {
    *  stejný aditivní princip jako `turningDetail` (`undefined` pro všechny
    *  výsledky mimo `MillingCalculationStrategy`). */
   millingDetail?: MillingCalculationBreakdown;
+
+  /** AP-MCE-001 Fáze E §12 "Rozšiř CalculationBreakdown o grinding část" -
+   *  stejný aditivní princip jako `turningDetail`/`millingDetail`. */
+  grindingDetail?: GrindingCalculationBreakdown;
 }
 
 function assertNonNegativeCoefficient(name: string, value: number): void {
@@ -225,6 +230,9 @@ export class CalculationBreakdown {
   get millingDetail(): MillingCalculationBreakdown | undefined {
     return this.props.millingDetail;
   }
+  get grindingDetail(): GrindingCalculationBreakdown | undefined {
+    return this.props.grindingDetail;
+  }
 
   /** UnitTimeAdjusted (AP-MCE-001 §03) - čas na jeden kus PO aplikaci všech
    *  Layer 2 koeficientů, jednotné pro celou dávku v Fázi A (viz komentář
@@ -305,6 +313,7 @@ export class CalculationBreakdown {
       // se beze změny.
       turningDetail: json.turningDetail as TurningCalculationBreakdown | undefined,
       millingDetail: json.millingDetail as MillingCalculationBreakdown | undefined,
+      grindingDetail: json.grindingDetail as GrindingCalculationBreakdown | undefined,
     });
   }
 
@@ -335,6 +344,7 @@ export class CalculationBreakdown {
       fixedAllowance: this.props.fixedAllowance.toJSON(),
       turningDetail: this.props.turningDetail,
       millingDetail: this.props.millingDetail,
+      grindingDetail: this.props.grindingDetail,
       // Odvozené hodnoty se serializují taky - konzumenti (API, UI) je nemusí
       // přepočítávat znovu, viz AP-MCE-001 §05 "Výpočet nesmí vracet pouze
       // jedno číslo bez vysvětlení".

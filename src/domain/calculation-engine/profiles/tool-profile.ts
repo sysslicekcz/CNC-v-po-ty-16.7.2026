@@ -22,6 +22,11 @@ export interface ToolProfileProps {
   teethCount?: number;
   cornerRadiusMm?: number;
   insertType?: string;
+  /** Šířka nástroje (mm), pokud je relevantní - u brusných kotoučů (AP-MCE-001
+   *  Fáze E §2 "wheelWidthMm") jde o šířku obvodu kotouče; ADITIVNÍ pole nad
+   *  Fázi B, `undefined` pro nástroje, kde šířka není samostatný rozměr
+   *  (soustružnické/frézovací nástroje ji nepoužívají). */
+  widthMm?: number;
   suitableMaterialGroupIds: readonly string[];
   supportedOperationCategories: readonly OperationCategory[];
   defaultCuttingParameters: readonly ToolCuttingParameters[];
@@ -131,6 +136,9 @@ export class ToolProfile {
   get insertType(): string | undefined {
     return this.props.insertType;
   }
+  get widthMm(): number | undefined {
+    return this.props.widthMm;
+  }
   get suitableMaterialGroupIds(): readonly string[] {
     return this.props.suitableMaterialGroupIds;
   }
@@ -230,6 +238,7 @@ export class ToolProfile {
       teethCount: this.props.teethCount,
       cornerRadiusMm: this.props.cornerRadiusMm,
       insertType: this.props.insertType,
+      widthMm: this.props.widthMm,
       suitableMaterialGroupIds: this.props.suitableMaterialGroupIds,
       supportedOperationCategories: this.props.supportedOperationCategories,
       defaultCuttingParameters: this.props.defaultCuttingParameters.map((p) => p.toJSON()),

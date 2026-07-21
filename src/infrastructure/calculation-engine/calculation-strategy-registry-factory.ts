@@ -1,6 +1,7 @@
 import { CalculationStrategyRegistry, InMemoryCalculationStrategyRegistry } from "@/domain/calculation-engine/services/calculation-strategy-registry";
 import { TurningCalculationStrategy } from "@/domain/calculation-engine/turning/turning-calculation-strategy";
 import { MillingCalculationStrategy } from "@/domain/calculation-engine/milling/milling-calculation-strategy";
+import { GrindingCalculationStrategy } from "@/domain/calculation-engine/grinding/grinding-calculation-strategy";
 
 /**
  * Kompoziční kořen registrace `CalculationStrategy` implementací (AP-MCE-001
@@ -16,5 +17,6 @@ export function createCalculationStrategyRegistry(): CalculationStrategyRegistry
   const registry = new InMemoryCalculationStrategyRegistry();
   registry.register(new TurningCalculationStrategy());
   registry.register(new MillingCalculationStrategy());
+  registry.register(new GrindingCalculationStrategy());
   return registry;
 }

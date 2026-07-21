@@ -137,6 +137,7 @@ export interface ToolProfileRecord {
   teethCount?: number;
   cornerRadiusMm?: number;
   insertType?: string;
+  widthMm?: number;
   suitableMaterialGroupIds: string[];
   supportedOperationCategories: OperationCategory[];
   defaultCuttingParameters: ToolCuttingParametersRecord[];

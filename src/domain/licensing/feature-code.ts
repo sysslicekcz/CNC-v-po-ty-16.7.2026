@@ -61,7 +61,11 @@ export type FeatureCode =
   | "calculation.turning"
   // AP-MCE-001 Fáze D §18 - `calculation.milling` řídí spuštění
   // `MillingCalculationStrategy`, stejná role jako `calculation.turning`.
-  | "calculation.milling";
+  | "calculation.milling"
+  // AP-MCE-001 Fáze E §20 - `calculation.grinding` řídí spuštění brusírenských
+  // strategií (`CylindricalGrindingCalculationStrategy`/`SurfaceGrinding
+  // CalculationStrategy`), stejná role jako `calculation.turning`/`calculation.milling`.
+  | "calculation.grinding";
 
 /** Dynamický doplněk `FeatureCode` pro dostupnost KONKRÉTNÍHO konektoru
  *  (`connector.helios`, `connector.sap`, `connector.custom-rest`, ...) - licence
@@ -115,6 +119,7 @@ export const FeatureCodes = {
   CalculationApprove: "calculation.approve",
   CalculationTurning: "calculation.turning",
   CalculationMilling: "calculation.milling",
+  CalculationGrinding: "calculation.grinding",
 } as const satisfies Record<string, FeatureCode>;
 
 /** Sestaví `ConnectorFeatureCode` pro daný `connectorType` (`"helios"` ->
