@@ -84,6 +84,7 @@ export interface MachineProfileRecord {
   rapidTraverseRateMmMin?: number;
   accelerationMmSec2?: number;
   positioningAccuracyMm?: number;
+  maxFeedRateMmMin?: number;
   availableFunctions: MachineCapabilitySummary[];
   powerCoefficient: number;
   ageCoefficient: number;
@@ -145,6 +146,7 @@ export interface ToolProfileRecord {
   currency?: string;
   wearFactorCurve: { points: ToolWearCurvePoint[]; curveVersion: string };
   maxCuttingSpeedMMin?: number;
+  maxFeedPerToothMm?: number;
   tenantCorrectionId?: string;
   recordVersion: number;
   createdAt: string;

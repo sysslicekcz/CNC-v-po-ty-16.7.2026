@@ -1,18 +1,20 @@
 import { CalculationStrategyRegistry, InMemoryCalculationStrategyRegistry } from "@/domain/calculation-engine/services/calculation-strategy-registry";
 import { TurningCalculationStrategy } from "@/domain/calculation-engine/turning/turning-calculation-strategy";
+import { MillingCalculationStrategy } from "@/domain/calculation-engine/milling/milling-calculation-strategy";
 
 /**
  * Kompoziční kořen registrace `CalculationStrategy` implementací (AP-MCE-001
  * Fáze C §13) - JEDINÉ místo v appce, které ví, jaké konkrétní strategie
  * existují. `CalculationStrategyRegistry`/`DefaultCalculationEngine` (Domain)
- * o `TurningCalculationStrategy` nic nevědí - `resolve(category)` je čisté
- * vyhledání v `Map`, ŽÁDNÉ `if (category === "turning")` větvení (architek-
- * tonický test `calculation-engine-layering.test.ts` na tohle dohlíží).
- * Přidání `MillingCalculationStrategy` (Fáze D) je jen další `.register(...)`
- * volání tady - `TurningCalculationStrategy` se přidáním nezmění.
+ * o `TurningCalculationStrategy`/`MillingCalculationStrategy` nic nevědí -
+ * `resolve(category)` je čisté vyhledání v `Map`, ŽÁDNÉ `if (category ===
+ * "turning")` větvení (architektonický test na tohle dohlíží). Přidání Fáze D
+ * `MillingCalculationStrategy` byl jen další `.register(...)` volání tady -
+ * `TurningCalculationStrategy` se přidáním nezměnila.
  */
 export function createCalculationStrategyRegistry(): CalculationStrategyRegistry {
   const registry = new InMemoryCalculationStrategyRegistry();
   registry.register(new TurningCalculationStrategy());
+  registry.register(new MillingCalculationStrategy());
   return registry;
 }

@@ -58,7 +58,10 @@ export type FeatureCode =
   // čtveřice (ruční přepis vypočteného času / schválení výsledku).
   | "calculation.override"
   | "calculation.approve"
-  | "calculation.turning";
+  | "calculation.turning"
+  // AP-MCE-001 Fáze D §18 - `calculation.milling` řídí spuštění
+  // `MillingCalculationStrategy`, stejná role jako `calculation.turning`.
+  | "calculation.milling";
 
 /** Dynamický doplněk `FeatureCode` pro dostupnost KONKRÉTNÍHO konektoru
  *  (`connector.helios`, `connector.sap`, `connector.custom-rest`, ...) - licence
@@ -111,6 +114,7 @@ export const FeatureCodes = {
   CalculationOverride: "calculation.override",
   CalculationApprove: "calculation.approve",
   CalculationTurning: "calculation.turning",
+  CalculationMilling: "calculation.milling",
 } as const satisfies Record<string, FeatureCode>;
 
 /** Sestaví `ConnectorFeatureCode` pro daný `connectorType` (`"helios"` ->

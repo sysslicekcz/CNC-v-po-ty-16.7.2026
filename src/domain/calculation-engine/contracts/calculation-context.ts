@@ -62,6 +62,29 @@ export interface CalculationContext {
    * toolProfileId` a uloží sem podle `TurningFeature.id`.
    */
   toolProfileSnapshotsByFeatureId?: Readonly<Record<string, ToolProfileSnapshot>>;
+  /**
+   * AP-MCE-001 Fáze D §5/§6 - stejný důvod jako `turningCuttingConditionsBy
+   * FeatureId`, jen pro `MillingFeature` (`feedPerToothMm`/`mm_per_tooth`
+   * místo `feedPerRevolutionMm`/`mm_per_rev`). `CalculateMillingOperationUse
+   * Case` (Application vrstva) zavolá `CuttingConditionResolverService.
+   * resolve()` JEDNOU PRO KAŽDÝ feature a výsledek sem uloží podle
+   * `MillingFeature.id` - `MillingCalculationStrategy` pak čte už jen hotová
+   * data.
+   */
+  millingCuttingConditionsByFeatureId?: Readonly<Record<string, MillingResolvedCuttingConditionForFeature>>;
+}
+
+/** Jedna položka `millingCuttingConditionsByFeatureId` - zúžený výřez
+ *  `CuttingConditionResolution` (Fáze B) na to, co `MillingCalculationStrategy`
+ *  skutečně čte (řezná rychlost + posuv na zub, se zdrojem/důvěryhodností
+ *  pro breakdown/confidence). */
+export interface MillingResolvedCuttingConditionForFeature {
+  cuttingSpeedMMin?: number;
+  cuttingSpeedSource?: string;
+  cuttingSpeedConfidence?: number;
+  feedPerToothMm?: number;
+  feedSource?: string;
+  feedConfidence?: number;
 }
 
 /** Jedna položka `turningCuttingConditionsByFeatureId` - zúžený výřez

@@ -34,7 +34,14 @@ export type CalculationEngineEventType =
   | "turning_calculation.failed"
   | "turning_calculation.recalculated"
   | "turning_machine_comparison.completed"
-  | "turning_tool_comparison.completed";
+  | "turning_tool_comparison.completed"
+  // AP-MCE-001 Fáze D §17 - stejná role jako turning ekvivalenty výš.
+  | "milling_calculation.requested"
+  | "milling_calculation.completed"
+  | "milling_calculation.failed"
+  | "milling_calculation.recalculated"
+  | "milling_machine_comparison.completed"
+  | "milling_tool_comparison.completed";
 
 export interface CalculationEngineEvent {
   eventId: string;

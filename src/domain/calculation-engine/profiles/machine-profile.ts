@@ -38,6 +38,10 @@ export interface MachineProfileProps {
   rapidTraverseRateMmMin?: number;
   accelerationMmSec2?: number;
   positioningAccuracyMm?: number;
+  /** Maximální posuv (mm/min), pokud ho stroj má (AP-MCE-001 Fáze D §5/§8
+   *  "Posuv omez: maximálním posuvem stroje, pokud je dostupný") - ADITIVNÍ
+   *  pole nad Fázi B (`undefined` pro všechny profily založené před Fází D). */
+  maxFeedRateMmMin?: number;
   availableFunctions: readonly MachineCapabilitySummary[];
   /** Layer 2 koeficienty (AP-MCE-001 Fáze A §03) - `performanceCoefficient`
    *  se NEUKLÁDÁ, počítá se z těchhle tří (viz getter níže), aby nikdy
@@ -167,6 +171,9 @@ export class MachineProfile {
   }
   get positioningAccuracyMm(): number | undefined {
     return this.props.positioningAccuracyMm;
+  }
+  get maxFeedRateMmMin(): number | undefined {
+    return this.props.maxFeedRateMmMin;
   }
   get availableFunctions(): readonly MachineCapabilitySummary[] {
     return this.props.availableFunctions;
@@ -340,6 +347,7 @@ export class MachineProfile {
       rapidTraverseRateMmMin: this.props.rapidTraverseRateMmMin,
       accelerationMmSec2: this.props.accelerationMmSec2,
       positioningAccuracyMm: this.props.positioningAccuracyMm,
+      maxFeedRateMmMin: this.props.maxFeedRateMmMin,
       availableFunctions: this.props.availableFunctions,
       powerCoefficient: this.props.powerCoefficient,
       ageCoefficient: this.props.ageCoefficient,

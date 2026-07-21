@@ -38,6 +38,10 @@ export interface ToolProfileProps {
    *  průměru obráběného místa, ten strategie dopočítá sama
    *  (`SpindleSpeed.fromCuttingSpeed`). */
   maxCuttingSpeedMMin?: number;
+  /** Maximální doporučený posuv na zub (mm/zub), pokud ho výrobce/tenant zná
+   *  (AP-MCE-001 Fáze D §5/§8 "Posuv omez: maximálním doporučeným posuvem
+   *  nástroje") - ADITIVNÍ pole nad Fázi C. */
+  maxFeedPerToothMm?: number;
   tenantCorrectionId?: string;
   recordVersion: number;
   createdAt: string;
@@ -154,6 +158,9 @@ export class ToolProfile {
   get maxCuttingSpeedMMin(): number | undefined {
     return this.props.maxCuttingSpeedMMin;
   }
+  get maxFeedPerToothMm(): number | undefined {
+    return this.props.maxFeedPerToothMm;
+  }
   get tenantCorrectionId(): string | undefined {
     return this.props.tenantCorrectionId;
   }
@@ -232,6 +239,7 @@ export class ToolProfile {
       currency: this.props.currency,
       wearFactorCurve: this.props.wearFactorCurve.toJSON(),
       maxCuttingSpeedMMin: this.props.maxCuttingSpeedMMin,
+      maxFeedPerToothMm: this.props.maxFeedPerToothMm,
       tenantCorrectionId: this.props.tenantCorrectionId,
       recordVersion: this.props.recordVersion,
       createdAt: this.props.createdAt,
