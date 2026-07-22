@@ -70,7 +70,21 @@ export type FeatureCode =
   // spuštění `ManualOperationCalculationStrategy`/`InspectionCalculationStrategy`,
   // stejná role jako `calculation.turning`/`calculation.milling`/`calculation.grinding`.
   | "calculation.manual"
-  | "calculation.inspection";
+  | "calculation.inspection"
+  // AP-MCE-001 Fáze G §21 - jemnější oprávnění pro skutečné časy a kalibraci,
+  // odlišné od hrubšího `calculation.read/create/edit` (ty zůstávají pro
+  // samotné technologické výpočty) - stejný důvod jako Fáze B čtveřice
+  // `calculation.read/create/edit/admin` u profilů.
+  | "calculation.actual-time.read"
+  | "calculation.actual-time.create"
+  | "calculation.actual-time.edit"
+  | "calculation.actual-time.approve"
+  | "calculation.calibration.read"
+  | "calculation.calibration.create"
+  | "calculation.calibration.review"
+  | "calculation.calibration.approve"
+  | "calculation.calibration.activate"
+  | "calculation.calibration.admin";
 
 /** Dynamický doplněk `FeatureCode` pro dostupnost KONKRÉTNÍHO konektoru
  *  (`connector.helios`, `connector.sap`, `connector.custom-rest`, ...) - licence
@@ -127,6 +141,16 @@ export const FeatureCodes = {
   CalculationGrinding: "calculation.grinding",
   CalculationManual: "calculation.manual",
   CalculationInspection: "calculation.inspection",
+  CalculationActualTimeRead: "calculation.actual-time.read",
+  CalculationActualTimeCreate: "calculation.actual-time.create",
+  CalculationActualTimeEdit: "calculation.actual-time.edit",
+  CalculationActualTimeApprove: "calculation.actual-time.approve",
+  CalculationCalibrationRead: "calculation.calibration.read",
+  CalculationCalibrationCreate: "calculation.calibration.create",
+  CalculationCalibrationReview: "calculation.calibration.review",
+  CalculationCalibrationApprove: "calculation.calibration.approve",
+  CalculationCalibrationActivate: "calculation.calibration.activate",
+  CalculationCalibrationAdmin: "calculation.calibration.admin",
 } as const satisfies Record<string, FeatureCode>;
 
 /** Sestaví `ConnectorFeatureCode` pro daný `connectorType` (`"helios"` ->

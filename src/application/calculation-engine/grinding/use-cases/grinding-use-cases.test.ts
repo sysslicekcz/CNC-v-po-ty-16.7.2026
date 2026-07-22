@@ -98,6 +98,9 @@ function fakeCalculationRepository(): CalculationRepository {
         .filter((r) => r.calculationRequestId === calculationRequestId && r.tenantId === tenantId)
         .sort((a, b) => b.calculatedAt.localeCompare(a.calculatedAt));
     },
+    listResultsByTenant: async (tenantId) => {
+      return [...results.values()].filter((r) => r.tenantId === tenantId);
+    },
   };
 }
 

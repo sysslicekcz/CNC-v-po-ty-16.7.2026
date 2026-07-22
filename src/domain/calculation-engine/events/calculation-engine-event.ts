@@ -74,7 +74,34 @@ export type CalculationEngineEventType =
   | "inspection_calculation.recalculated"
   | "manual_standard.selected"
   | "inspection_sampling.resolved"
-  | "inspection_equipment.selected";
+  | "inspection_equipment.selected"
+  // AP-MCE-001 Fáze G §25 - PŘESNĚ 20 událostí ze zadání, tři oblasti:
+  // skutečné časy (`actual_time.*`), analýza odchylek (`variance.*`/
+  // `variance_cause.*`) a kalibrace (`calibration_*`).
+  // `calibration_profile.activated`/`.superseded` mají stejnou roli jako
+  // `tool_profile.created`/`.updated` (Fáze B) - verzovaná entita, ne CRUD
+  // pár, protože `CalibrationProfile` se nikdy needituje na místě (§13/§18
+  // "ochrana proti retroaktivní změně").
+  | "actual_time.created"
+  | "actual_time.updated"
+  | "actual_time.imported"
+  | "actual_time.validated"
+  | "actual_time.approved"
+  | "actual_time.matched"
+  | "actual_time.match_failed"
+  | "variance.analysis_completed"
+  | "variance.high_detected"
+  | "variance_cause.suggested"
+  | "variance_cause.confirmed"
+  | "calibration_samples.created"
+  | "calibration_outliers.detected"
+  | "calibration_proposal.generated"
+  | "calibration_proposal.backtested"
+  | "calibration_proposal.reviewed"
+  | "calibration_proposal.approved"
+  | "calibration_profile.activated"
+  | "calibration_profile.superseded"
+  | "calibration_shadow.completed";
 
 export interface CalculationEngineEvent {
   eventId: string;

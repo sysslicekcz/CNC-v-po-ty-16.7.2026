@@ -59,4 +59,9 @@ export class IndexedDbCalculationRepository implements CalculationRepository {
       .map(calculationResultFromRecord)
       .sort((a, b) => b.calculatedAt.localeCompare(a.calculatedAt)); // nejnovější první
   }
+
+  async listResultsByTenant(tenantId: string): Promise<CalculationResult[]> {
+    const records = await tpvGetAllByIndex<CalculationResultRecord>("tpvCalculationResults", "tenantId", tenantId);
+    return records.map(calculationResultFromRecord);
+  }
 }

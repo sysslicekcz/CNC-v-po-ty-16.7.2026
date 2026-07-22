@@ -15,9 +15,8 @@ import { CalculationResult } from "../entities/calculation-result";
  * use case ho zavolá PŘED vytvořením nového požadavku, aby opakované volání
  * se stejným klíčem vrátilo původní výsledek místo druhého výpočtu.
  *
- * TODO(pozdější fáze): `listResultsByOperationTypeId`/`listRevisionChain`
- * až vznikne "Calculation history"/"Revisions" (AP-MCE-001 §20, Fáze G) -
- * Fáze A cíleně nese jen to, co potřebuje `CalculateOperationUseCase`.
+ * `listResultsByTenant` doplněno ve Fázi G (§6/§23) - kandidáti pro
+ * `ActualTimeCalculationMatcher`, viz jeho komentář.
  */
 export interface CalculationRepository {
   saveRequest(request: CalculationRequest): Promise<void>;
@@ -29,4 +28,10 @@ export interface CalculationRepository {
   /** Všechny revize (viz `CalculationResult.supersedesResultId`) vzniklé z
    *  jednoho požadavku, nejnovější první. */
   findResultsByRequestId(calculationRequestId: string, tenantId: string): Promise<CalculationResult[]>;
+  /** AP-MCE-001 Fáze G §6 - "Calculation history"/kandidáti pro
+   *  `ActualTimeCalculationMatcher` (volající si k výsledku dál dotáhne
+   *  `findRequestById(result.calculationRequestId, tenantId)` pro
+   *  `operationCategory`/`machineId`/... z `inputSnapshot` - viz předchozí
+   *  TODO komentář u tohohle rozhraní, teď doplněno). */
+  listResultsByTenant(tenantId: string): Promise<CalculationResult[]>;
 }

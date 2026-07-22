@@ -7,7 +7,7 @@
 import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 /** Použito jen k backfillu Kroku 5 (viz `upgrade()`, `oldVersion < 5`) - appka
  *  dosud běží s jediným výchozím tenantem, takže existující OperationType/
  *  ToolType záznamy patří logicky jemu. */
@@ -59,7 +59,18 @@ export type TpvStoreName =
   | "tpvToolCorrections"
   | "tpvCuttingConditions"
   | "tpvManualTimeStandards"
-  | "tpvInspectionEquipmentProfiles";
+  | "tpvInspectionEquipmentProfiles"
+  | "tpvActualTimeRecords"
+  | "tpvActualTimeSegments"
+  | "tpvActualTimeImportBatches"
+  | "tpvActualTimeImportMappings"
+  | "tpvVarianceToleranceProfiles"
+  | "tpvCalculationVariances"
+  | "tpvVarianceCauseAssignments"
+  | "tpvCalibrationSamples"
+  | "tpvCalibrationProfiles"
+  | "tpvCalibrationProposals"
+  | "tpvShadowCalculationResults";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -408,6 +419,51 @@ export function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTrans
 
     const inspectionEquipmentProfiles = db.createObjectStore("tpvInspectionEquipmentProfiles", { keyPath: "id" });
     inspectionEquipmentProfiles.createIndex("tenantId", "tenantId");
+  }
+
+  if (oldVersion < 9) {
+    // Manufacturing Calculation Engine (AP-MCE-001, Fáze G) - skutečné časy,
+    // odchylky a kalibrace. Jedenáct nových stores, žádná úprava existujících
+    // (stejný aditivní vzor jako `oldVersion < 8` výš).
+    const actualTimeRecords = db.createObjectStore("tpvActualTimeRecords", { keyPath: "id" });
+    actualTimeRecords.createIndex("tenantId", "tenantId");
+    actualTimeRecords.createIndex("calculationId", "calculationId");
+    actualTimeRecords.createIndex("operationId", "operationId");
+    actualTimeRecords.createIndex("recordedAt", "recordedAt");
+
+    const actualTimeSegments = db.createObjectStore("tpvActualTimeSegments", { keyPath: "id" });
+    actualTimeSegments.createIndex("actualTimeRecordId", "actualTimeRecordId");
+
+    const actualTimeImportBatches = db.createObjectStore("tpvActualTimeImportBatches", { keyPath: "id" });
+    actualTimeImportBatches.createIndex("tenantId", "tenantId");
+
+    const actualTimeImportMappings = db.createObjectStore("tpvActualTimeImportMappings", { keyPath: "id" });
+    actualTimeImportMappings.createIndex("tenantId", "tenantId");
+
+    const varianceToleranceProfiles = db.createObjectStore("tpvVarianceToleranceProfiles", { keyPath: "id" });
+    varianceToleranceProfiles.createIndex("tenantId", "tenantId");
+
+    const calculationVariances = db.createObjectStore("tpvCalculationVariances", { keyPath: "id" });
+    calculationVariances.createIndex("tenantId", "tenantId");
+    calculationVariances.createIndex("calculationId", "calculationId");
+
+    const varianceCauseAssignments = db.createObjectStore("tpvVarianceCauseAssignments", { keyPath: "id" });
+    varianceCauseAssignments.createIndex("tenantId", "tenantId");
+    varianceCauseAssignments.createIndex("calculationId", "calculationId");
+
+    const calibrationSamples = db.createObjectStore("tpvCalibrationSamples", { keyPath: "id" });
+    calibrationSamples.createIndex("tenantId", "tenantId");
+    calibrationSamples.createIndex("createdAt", "createdAt");
+
+    const calibrationProfiles = db.createObjectStore("tpvCalibrationProfiles", { keyPath: "id" });
+    calibrationProfiles.createIndex("tenantId", "tenantId");
+
+    const calibrationProposals = db.createObjectStore("tpvCalibrationProposals", { keyPath: "id" });
+    calibrationProposals.createIndex("tenantId", "tenantId");
+
+    const shadowCalculationResults = db.createObjectStore("tpvShadowCalculationResults", { keyPath: "id" });
+    shadowCalculationResults.createIndex("tenantId", "tenantId");
+    shadowCalculationResults.createIndex("officialCalculationId", "officialCalculationId");
   }
 }
 
