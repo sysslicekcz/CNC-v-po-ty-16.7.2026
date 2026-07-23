@@ -10,3 +10,4 @@ export * from "./calculation-engine-records";
 export * from "./calculation-engine-profile-records";
 export * from "./calculation-engine-manual-inspection-records";
 export * from "./calibration-records";
+export * from "./workflow-records";

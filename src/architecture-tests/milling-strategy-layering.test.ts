@@ -86,7 +86,10 @@ describe("MillingCalculationStrategy - architektonické testy (AP-MCE-001 Fáze 
     for (const file of presentationFiles) {
       const code = stripComments(readFileSync(file, "utf-8"));
       for (const line of code.match(IMPORT_LINE) ?? []) {
-        if (/calculation-engine\/milling/i.test(line)) offenders.push(`${file}: ${line.trim()}`);
+        // Fáze H: presentation SMÍ importovat application/calculation-engine/milling
+        // (kompoziční kořen `calculation-engine-dependencies.ts`) - zakázaný je jen
+        // přímý import z domain vrstvy.
+        if (/domain\/calculation-engine\/milling/i.test(line)) offenders.push(`${file}: ${line.trim()}`);
       }
     }
     expect(offenders).toEqual([]);

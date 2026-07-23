@@ -1,5 +1,6 @@
 import { CalculationStatus } from "@/domain/calculation-engine/enums/calculation-status";
 import { CalculationIssue } from "@/domain/calculation-engine/entities/types";
+import type { OperationCategory } from "@/domain/calculation-engine/enums/operation-category";
 
 /**
  * Application DTO odpovídající response tvaru z AP-MCE-001 §12 - plochá,
@@ -27,4 +28,21 @@ export interface OperationCalculationOutput {
   finalOperationTimeMinutes?: number;
   issues: readonly CalculationIssue[];
   calculatedAt: string;
+  /** Doplněné až Fáze H (§11 "CalculationResultPage") - `undefined`, pokud
+   *  volající mapper nemá po ruce odpovídající `CalculationRequest` (většina
+   *  Fáze C-G volání `toOperationCalculationOutput`, kde se kategorie/typ
+   *  operace zná už z volajícího kontextu). */
+  operationCategory?: OperationCategory;
+  operationTypeId?: string;
+  /** Schvalovací workflow (§14) - stejné additive pole jako na
+   *  `CalculationResult` (Fáze H §120). */
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  archivedAt?: string;
+  /** Snapshoty profilů PLATNÝCH v okamžiku výpočtu (§11 "Snapshoty") - jen
+   *  turning/milling/grinding je vyplňují (viz `Calculate*OperationUseCase`),
+   *  `undefined` jinak. */
+  materialProfileSnapshot?: Record<string, unknown>;
+  machineProfileSnapshot?: Record<string, unknown>;
 }

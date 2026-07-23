@@ -90,7 +90,10 @@ describe("Grinding strategies - architektonické testy (AP-MCE-001 Fáze E §23)
     for (const file of presentationFiles) {
       const code = stripComments(readFileSync(file, "utf-8"));
       for (const line of code.match(IMPORT_LINE) ?? []) {
-        if (/calculation-engine\/grinding/i.test(line)) offenders.push(`${file}: ${line.trim()}`);
+        // Fáze H: presentation SMÍ importovat application/calculation-engine/grinding
+        // (kompoziční kořen `calculation-engine-dependencies.ts`) - zakázaný je jen
+        // přímý import z domain vrstvy.
+        if (/domain\/calculation-engine\/grinding/i.test(line)) offenders.push(`${file}: ${line.trim()}`);
       }
     }
     expect(offenders).toEqual([]);

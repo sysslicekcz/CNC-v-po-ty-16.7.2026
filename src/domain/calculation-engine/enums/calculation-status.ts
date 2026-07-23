@@ -9,5 +9,24 @@
  *
  * `superseded` pokrývá AP-MCE-001 §15 - výsledek, který nahradila novější
  * revize (nikdy se nemaže, jen se takhle označí, viz `CalculationResult`).
+ *
+ * AP-MCE-001 Fáze H §14 - ADITIVNÍ rozšíření o schvalovací workflow
+ * ("Draft, Calculated, Approved"): `needs_review`/`approved`/`rejected`/
+ * `archived` jsou NOVÉ stavy nad rámec Fáze A. `draft`/`validating` ze
+ * zadání §14 NEJSOU tady - ty popisují stav PŘED vznikem `CalculationResult`
+ * (rozpracovaný formulář průvodce), pokrývá je nová entita `CalculationDraft`
+ * (Fáze H), ne tenhle enum. Žádná existující strategie/use case tyhle nové
+ * hodnoty nenastavuje - jen nové Fáze H use cases (`SubmitCalculationForReview
+ * UseCase`/`ApproveCalculationUseCase`/`RejectCalculationUseCase`/
+ * `ArchiveCalculationUseCase`), takže rozšíření je čistě aditivní.
  */
-export type CalculationStatus = "pending" | "completed" | "completed_with_warnings" | "failed" | "superseded";
+export type CalculationStatus =
+  | "pending"
+  | "completed"
+  | "completed_with_warnings"
+  | "failed"
+  | "superseded"
+  | "needs_review"
+  | "approved"
+  | "rejected"
+  | "archived";

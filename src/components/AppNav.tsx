@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/tpv", label: "Přehled" },
   { href: "/", label: "CNC kalkulace", exact: true },
   { href: "/tpv/routing-sheets", label: "Technologické postupy" },
+  { href: "/calculations", label: "Výpočty výroby" },
   { href: "/tpv/master-data", label: "Kmenová data" },
   { href: "/tpv/integrations", label: "Integrace ERP" },
   { href: "/tpv/settings", label: "Nastavení" },

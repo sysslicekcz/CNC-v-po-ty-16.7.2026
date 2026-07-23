@@ -82,7 +82,7 @@ describe("Vrstvení kmenových dat (Krok 5)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("master-data-dependencies.ts/routing-sheet-editor-dependencies.ts/integration-dependencies.ts jsou JEDINÁ místa v presentation vrstvě, která smí instanciovat IndexedDb*Repository (kontrolní součet)", () => {
+  it("master-data-dependencies.ts/routing-sheet-editor-dependencies.ts/integration-dependencies.ts/calculation-engine-dependencies.ts jsou JEDINÁ místa v presentation vrstvě, která smí instanciovat IndexedDb*Repository (kontrolní součet)", () => {
     const presentationFiles = collectTsFiles(join(SRC_ROOT, "presentation"));
     const filesInstantiatingIndexedDbRepo = presentationFiles.filter((f) => {
       const code = stripComments(readFileSync(f, "utf-8"));
@@ -92,7 +92,9 @@ describe("Vrstvení kmenových dat (Krok 5)", () => {
       (f) =>
         f.endsWith("master-data-dependencies.ts") ||
         f.endsWith("routing-sheet-editor-dependencies.ts") ||
-        f.endsWith("integration-dependencies.ts")
+        f.endsWith("integration-dependencies.ts") ||
+        // Fáze H - stejný "žádný DI kontejner" vzor pro modul "Výpočty výroby".
+        f.endsWith("calculation-engine-dependencies.ts")
     );
     expect(filesInstantiatingIndexedDbRepo.sort()).toEqual(allowList.sort());
   });

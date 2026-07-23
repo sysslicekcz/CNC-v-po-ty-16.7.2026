@@ -75,7 +75,10 @@ describe("TurningCalculationStrategy - architektonické testy (AP-MCE-001 Fáze 
     for (const file of presentationFiles) {
       const code = stripComments(readFileSync(file, "utf-8"));
       for (const line of code.match(IMPORT_LINE) ?? []) {
-        if (/calculation-engine\/turning/i.test(line)) offenders.push(`${file}: ${line.trim()}`);
+        // Fáze H: presentation SMÍ importovat application/calculation-engine/turning
+        // (kompoziční kořen `calculation-engine-dependencies.ts` wiruje existující
+        // Application use cases) - zakázaný je jen přímý import z domain vrstvy.
+        if (/domain\/calculation-engine\/turning/i.test(line)) offenders.push(`${file}: ${line.trim()}`);
       }
     }
     expect(offenders).toEqual([]);

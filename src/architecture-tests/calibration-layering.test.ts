@@ -120,7 +120,12 @@ describe("Kalibrace (skutečné časy/odchylky/kalibrace) - architektonické tes
     const idxV9 = code.indexOf("oldVersion < 9");
     expect(idxV8).toBeGreaterThan(-1);
     expect(idxV9).toBeGreaterThan(idxV8);
-    expect(code).toMatch(/const DB_VERSION = 9/);
+    // DB_VERSION dál roste s dalšími fázemi (Fáze H ji posunula na 10) - tenhle
+    // test ověřuje jen, že v9 blok existuje a je aditivní, ne přesnou
+    // "poslední" hodnotu (ta patří `calculation-engine-workflow-layering.test.ts`).
+    const versionMatch = code.match(/const DB_VERSION = (\d+)/);
+    expect(versionMatch).not.toBeNull();
+    expect(Number(versionMatch?.[1])).toBeGreaterThanOrEqual(9);
   });
 
   it("Application vrstva kalibrace (use cases) existuje a neimportuje UI (react/@tauri-apps)", () => {

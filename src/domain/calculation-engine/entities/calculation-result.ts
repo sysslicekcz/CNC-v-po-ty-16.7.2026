@@ -52,6 +52,14 @@ export interface CalculationResultProps {
   machineProfileSnapshot?: Readonly<Record<string, unknown>>;
   toolProfileSnapshot?: Readonly<Record<string, unknown>>;
   cuttingConditionSnapshot?: Readonly<Record<string, unknown>>;
+  /** AP-MCE-001 Fáze H §14 - ADITIVNÍ schvalovací workflow (viz komentář u
+   *  `CalculationStatus`). `undefined`, dokud výsledek nikdo neodeslal ke
+   *  kontrole - výsledek zůstává plně funkční i bez těchto polí (zpětná
+   *  kompatibilita se všemi výsledky Fází A-G). */
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  archivedAt?: string;
 }
 
 export class CalculationResult {
@@ -132,6 +140,18 @@ export class CalculationResult {
   get cuttingConditionSnapshot(): Readonly<Record<string, unknown>> | undefined {
     return this.props.cuttingConditionSnapshot;
   }
+  get reviewedBy(): string | undefined {
+    return this.props.reviewedBy;
+  }
+  get reviewedAt(): string | undefined {
+    return this.props.reviewedAt;
+  }
+  get rejectionReason(): string | undefined {
+    return this.props.rejectionReason;
+  }
+  get archivedAt(): string | undefined {
+    return this.props.archivedAt;
+  }
 
   get isFailed(): boolean {
     return this.props.status === "failed";
@@ -139,6 +159,16 @@ export class CalculationResult {
 
   get isSuperseded(): boolean {
     return this.props.status === "superseded";
+  }
+
+  /** Immutabilita výsledku (AP-MCE-001 §14 "calculated výsledek je immutable",
+   *  "schválený výsledek nelze přepsat") - jen `pending`/`completed`/
+   *  `completed_with_warnings`/`needs_review` ještě smí projít schvalovacím
+   *  workflow; `approved`/`rejected`/`superseded`/`archived`/`failed` jsou
+   *  konečné (na `rejected` lze jen znovu odeslat NOVOU revizi, ne tenhle
+   *  záznam přepsat). */
+  get isEditableForReview(): boolean {
+    return this.props.status === "completed" || this.props.status === "completed_with_warnings" || this.props.status === "needs_review";
   }
 
   /** Vypočtený čas operace (AP-MCE-001 §03 `totalOperationTime`) - vyhodí,
@@ -172,5 +202,39 @@ export class CalculationResult {
   asSuperseded(): CalculationResult {
     if (this.props.status === "superseded") return this;
     return new CalculationResult({ ...this.props, status: "superseded" });
+  }
+
+  /** AP-MCE-001 Fáze H §14 "Odeslat ke kontrole" - vrací NOVOU instanci se
+   *  stavem `needs_review`. */
+  submitForReview(): CalculationResult {
+    if (!this.isEditableForReview) {
+      throw new InvalidStateError(`CalculationResult "${this.props.id}" nelze odeslat ke kontrole ze stavu "${this.props.status}".`);
+    }
+    return new CalculationResult({ ...this.props, status: "needs_review" });
+  }
+
+  /** "Schválit" (§14/§21) - jen ze stavu `needs_review`. */
+  approve(reviewedBy: string, reviewedAt: string): CalculationResult {
+    if (this.props.status !== "needs_review") {
+      throw new InvalidStateError(`CalculationResult "${this.props.id}" nelze schválit ze stavu "${this.props.status}" (musí být "needs_review").`);
+    }
+    return new CalculationResult({ ...this.props, status: "approved", reviewedBy, reviewedAt });
+  }
+
+  /** "Zamítnout" (§14) - MUSÍ mít důvod (§14 "zamítnutý výsledek musí mít
+   *  důvod"). */
+  reject(reviewedBy: string, reviewedAt: string, reason: string): CalculationResult {
+    if (this.props.status !== "needs_review") {
+      throw new InvalidStateError(`CalculationResult "${this.props.id}" nelze zamítnout ze stavu "${this.props.status}" (musí být "needs_review").`);
+    }
+    if (!reason.trim()) throw new ValidationError("CalculationResult.reject: 'reason' nesmí být prázdný.");
+    return new CalculationResult({ ...this.props, status: "rejected", reviewedBy, reviewedAt, rejectionReason: reason });
+  }
+
+  /** "Archivovat" (§14 "archivace nesmí smazat audit") - nikdy nemaže žádné
+   *  pole, jen doplní `archivedAt` a přepne `status`. */
+  archive(archivedAt: string): CalculationResult {
+    if (this.props.status === "archived") return this;
+    return new CalculationResult({ ...this.props, status: "archived", archivedAt });
   }
 }

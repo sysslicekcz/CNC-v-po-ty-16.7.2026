@@ -101,7 +101,22 @@ export type CalculationEngineEventType =
   | "calibration_proposal.approved"
   | "calibration_profile.activated"
   | "calibration_profile.superseded"
-  | "calibration_shadow.completed";
+  | "calibration_shadow.completed"
+  // AP-MCE-001 Fáze H §14/§17/§19 - schvalovací workflow `CalculationResult`
+  // (ADITIVNÍ, viz `CalculationStatus`), koncept/vazby průvodce a integrace
+  // do technologického postupu/nabídky. `entityId` u `calculation_result.*`
+  // nese `CalculationResult.id`, u `calculation_draft.*` nese
+  // `CalculationDraft.id`, u `technology_operation_calculation_link.*`/
+  // `quote_calculation_link.*` nese id vazby samotné (ne id výpočtu).
+  | "calculation_result.submitted_for_review"
+  | "calculation_result.approved"
+  | "calculation_result.rejected"
+  | "calculation_result.archived"
+  | "calculation_draft.saved"
+  | "calculation_draft.deleted"
+  | "technology_operation_calculation_link.linked"
+  | "technology_operation_calculation_link.unlinked"
+  | "quote_calculation_link.linked";
 
 export interface CalculationEngineEvent {
   eventId: string;

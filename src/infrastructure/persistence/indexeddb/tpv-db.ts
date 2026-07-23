@@ -7,7 +7,7 @@
 import { DEFAULT_TENANT_ID } from "@/domain/entities/tenant";
 
 const DB_NAME = "cnc-tpv";
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 /** Použito jen k backfillu Kroku 5 (viz `upgrade()`, `oldVersion < 5`) - appka
  *  dosud běží s jediným výchozím tenantem, takže existující OperationType/
  *  ToolType záznamy patří logicky jemu. */
@@ -70,7 +70,10 @@ export type TpvStoreName =
   | "tpvCalibrationSamples"
   | "tpvCalibrationProfiles"
   | "tpvCalibrationProposals"
-  | "tpvShadowCalculationResults";
+  | "tpvShadowCalculationResults"
+  | "tpvCalculationDrafts"
+  | "tpvTechnologyOperationCalculationLinks"
+  | "tpvQuoteCalculationLinks";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -464,6 +467,25 @@ export function upgrade(db: IDBDatabase, oldVersion: number, upgradeTx: IDBTrans
     const shadowCalculationResults = db.createObjectStore("tpvShadowCalculationResults", { keyPath: "id" });
     shadowCalculationResults.createIndex("tenantId", "tenantId");
     shadowCalculationResults.createIndex("officialCalculationId", "officialCalculationId");
+  }
+
+  if (oldVersion < 10) {
+    // Manufacturing Calculation Engine (AP-MCE-001, Fáze H) - Application UI a
+    // integrace: koncepty průvodce, vazba na technologickou operaci, vazba na
+    // položku nabídky. Tři nové stores, žádná úprava existujících (stejný
+    // aditivní vzor jako `oldVersion < 9` výš).
+    const calculationDrafts = db.createObjectStore("tpvCalculationDrafts", { keyPath: "id" });
+    calculationDrafts.createIndex("tenantId", "tenantId");
+    calculationDrafts.createIndex("updatedAt", "updatedAt");
+
+    const technologyOperationCalculationLinks = db.createObjectStore("tpvTechnologyOperationCalculationLinks", { keyPath: "id" });
+    technologyOperationCalculationLinks.createIndex("tenantId", "tenantId");
+    technologyOperationCalculationLinks.createIndex("technologyOperationId", "technologyOperationId");
+    technologyOperationCalculationLinks.createIndex("calculationId", "calculationId");
+
+    const quoteCalculationLinks = db.createObjectStore("tpvQuoteCalculationLinks", { keyPath: "id" });
+    quoteCalculationLinks.createIndex("tenantId", "tenantId");
+    quoteCalculationLinks.createIndex("quoteItemId", "quoteItemId");
   }
 }
 
